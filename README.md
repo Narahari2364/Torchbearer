@@ -1,38 +1,63 @@
 # Torchbearer
 
-Built for Hack-Nation × ElevenLabs, 7th Global AI Hackathon (brief: [docs/challenge-brief.pdf](docs/challenge-brief.pdf)). An ElevenLabs voice agent watches an expert (Paul) submit meal expenses in Ledgerline, a fake expense tool, stays quiet while they type, and asks "why" at natural pauses. It then runs a debrief and builds a clickable **Work Map** of steps, decisions, reasons in the expert's own words, and guardrails. A voice tutor uses that map to coach a new hire on a case the expert never showed, and blocks wrong decisions at Save. There are three modules: **Capture**, **Map** and **Teach**.
+Built for Hack-Nation × ElevenLabs, 7th Global AI Hackathon (brief: [docs/challenge-brief.pdf](docs/challenge-brief.pdf)).
+
+An expert records how they do a task. Torchbearer watches the screen, writes the workflow live and asks "why" by voice when the screenshots can't explain a step. The expert checks the result, a voice coach then guides a new hire through the same task, and differences go to a supervisor.
+
+**Capture → Mapping → Teaching → Review**
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in keys
+cp .env.example .env.local   # fill in the keys below
+npm run agents               # creates the two ElevenLabs agents and writes their IDs into .env.local
 npm run dev                  # http://localhost:3000
 ```
 
-Stack: Next.js (App Router, TypeScript), Tailwind, `@elevenlabs/react` (coming next), Gemini through server routes. No database: client state plus localStorage. Deploys to Vercel.
+| Variable | What for |
+|---|---|
+| `ELEVENLABS_API_KEY` | Voice agents and conversation tokens |
+| `ELEVENLABS_INTERVIEWER_AGENT_ID`, `ELEVENLABS_TUTOR_AGENT_ID` | Written by `npm run agents` (prompts live in [docs/agents.md](docs/agents.md)) |
+| `GEMINI_API_KEY` | Screen reading, workflow writing, coach |
+| `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store `torchbearer-db`. Get it with `vercel env pull .env.local` |
 
-Pages: `/` mode picker · `/capture` Ledgerline as Paul, Torchbearer button in its top bar (learning mode) · `/map` Work Map (opens each step's document in Ledgerline) · `/teach` Ledgerline as Maya with the Save guard, Torchbearer in teaching mode (progress, mastery report).
+Stack: Next.js (App Router, TypeScript), Tailwind, `@elevenlabs/react`, Gemini through server routes, Vercel Blob. Deploys to Vercel. This Next.js version has breaking changes: read `node_modules/next/dist/docs/` before changing routing or API code (see [AGENTS.md](AGENTS.md)).
 
-Data formats: [docs/formats.md](docs/formats.md). Fake data in `src/data/` means nobody waits on anyone.
+## Pages
 
-## Folder ownership
+| Route | Module |
+|---|---|
+| `/` | Redirects to `/capture` |
+| `/capture` | Launch the floating bot, name the workflow, record the screen |
+| `/map` | Mapping: the expert checks each observed step, corrects it, saves a named workflow |
+| `/teach` | Teaching: the coach guides a learner through a saved workflow |
+| `/review` | Supervisor reviews differences found while teaching |
+| `/ledgerline/index.html` | The fake expense tool used as the demo work app |
 
-Two people build the app. The split is **AI & voice** (logic, APIs, agents) vs **UI & experience** (everything you see).
+## API and storage
 
-| Track | Owns | What |
-|---|---|---|
-| AI & voice (branch `ai-voice`) | `src/app/api/`, `src/features/erp/LedgerlineFrame.tsx` (bridge), `src/features/capture/` logic, `src/features/teach/checkGuardrails.ts`, `src/features/workmap/buildWorkMap.ts`, `docs/agents.md` | ElevenLabs Interviewer + Tutor, pause detection, events → agent, debrief → Work Map (Gemini), guardrail rules |
-| UI & experience (branch `ui`) | `src/app/**/page.tsx` layouts, `public/ledgerline/index.html` (the work app; only its story data is ours), `src/features/workmap/WorkMapView.tsx`, all `*Panel.tsx` visuals, `globals.css` | Design system, realistic ERP, Work Map timeline, agent/tutor panels, blocked-save alert, end-of-session scorecard |
-| Pitch | `docs/pitch.md` | Pitch and demo script |
-| shared | `src/lib/`, `src/data/` | Change only with a heads-up |
+Server routes in `src/app/api/`: `observe`, `coach`, `workflows` (and `[id]`), `progress`, `reviews`, `elevenlabs/token`.
 
-UI components take their data as **props** and render fake data until the AI track wires the real thing. That way neither side waits.
+Data is JSON in the private Blob store ([src/lib/db.ts](src/lib/db.ts)): `workflows/index.json`, `workflows/<id>.json`, `progress/<workflow>/<learner>.json`, `reviews/current.json`.
 
-## Team rules
+## Code layout
 
-- Two branches: `ai-voice` and `ui`.
-- Merge to `main` only when it runs (`npm run build` passes).
-- `main` must always work.
-- Stay in your own folder. Changes to `src/lib/types.ts` must also update `docs/formats.md`.
-- Never commit `.env.local` or API keys.
+```
+src/app/        pages and API routes
+src/features/   observe/ (capture + coach bots), workmap/, apprentice/ (shared popup + dialog), plus a few legacy folders
+src/lib/        gemini, db, redact, session, types
+public/ledgerline/   the demo work app
+docs/           formats, agent prompts, pitch, design mocks
+scripts/        agents.mjs
+```
+
+Data formats: [docs/formats.md](docs/formats.md). Changes to `src/lib/types.ts` must also update it.
+
+## Workflow (3 developers)
+
+- `main` is always deployable and is what Vercel serves in production.
+- Work on short-lived branches (`feat/…`, `fix/…`, `chore/…`), open a PR, get one review, squash-merge, delete the branch.
+- The PR's Vercel preview is the place to test. `npm run build` and `npm run lint` must pass.
+- No `develop` or `release` branches. Tag milestones (`v0.1.0`).
+- Never commit `.env*` files except `.env.example`.
