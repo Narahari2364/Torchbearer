@@ -1,5 +1,5 @@
 // Shared data formats. Source of truth: docs/formats.md — change both together.
-// The work app is the Ledgerline expense tool (public/ledgerline.html).
+// The work app is the Ledgerline expense tool (public/ledgerline/index.html).
 
 /** What the Ledgerline mock sends with save / form events (its `snapshot()`). */
 export interface ExpenseSnapshot {

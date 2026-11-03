@@ -1,4 +1,3 @@
-# Never upload local secrets; keys are set as Vercel environment variables instead.
 .env
 .env.*
 !.env.example
