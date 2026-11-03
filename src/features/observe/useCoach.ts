@@ -1,7 +1,8 @@
 "use client";
-// Teaching loop: watch the new hire's screen (screenshot every 2 s), compare each new action
-// with the expert's approved steps (/api/coach), and guide gently by voice at pauses:
-// "that's right, next…" or "this might be a bit different… I've put it under review".
+// Teaching loop: watch the new hire's screen (screenshot every 2 s) and send each change to
+// /api/coach with only the workflow's id. The server grades against chunks it retrieves from
+// that workflow in the database; this hook adds no steps, rules or hints of its own.
+// Only "match" / "different" verdicts backed by a quoted chunk are shown or spoken.
 // Anything that might differ goes to the supervisor's review list, never "you're wrong".
 // Must be used inside <ConversationProvider>.
 
@@ -9,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { elapsed, resetSession } from "@/lib/events";
 import { loadMastery, loadReviews, saveMastery, saveReviews } from "@/lib/session";
 import { useVoiceAgent } from "@/lib/useVoiceAgent";
-import type { ReviewItem, StepMastery, WorkMap } from "@/lib/types";
+import type { ReviewItem, StepMastery, WorkflowRecord } from "@/lib/types";
 import { ScreenWatcher, shareErrorText, type Frame } from "./screenWatcher";
 
 const PAUSE_MS = 2000;
@@ -17,7 +18,16 @@ const LEARNER = "Maya Chen";
 
 export type CoachStatus = "idle" | "connecting" | "watching" | "reading" | "speaking" | "done";
 
-export function useCoach(map: WorkMap, workflowId: string) {
+export interface CoachMessage {
+  text: string;
+  verdict: "match" | "different";
+  time: string;
+  stepTitle: string; // the expert's step the verdict is grounded in
+  evidence: string; // the exact words from that step
+}
+
+export function useCoach(workflow: WorkflowRecord | null) {
+  const workflowId = workflow?.id ?? "";
   const agent = useVoiceAgent("tutor");
   const watcher = useRef(new ScreenWatcher());
   const [sharing, setSharing] = useState(false);
@@ -25,7 +35,8 @@ export function useCoach(map: WorkMap, workflowId: string) {
   const [done, setDone] = useState<string[]>([]);
   const [flagged, setFlagged] = useState<string[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
-  const [message, setMessage] = useState<{ text: string; verdict: "match" | "different"; time: string } | null>(null);
+  const [message, setMessage] = useState<CoachMessage | null>(null);
+  const [uncovered, setUncovered] = useState<string | null>(null); // last action the expert's recording doesn't cover
   const [finished, setFinished] = useState(false);
   // Learned / relearn per step: this session, and what was saved from earlier sessions.
   const [mastery, setMastery] = useState<Record<string, StepMastery>>({});
@@ -33,7 +44,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
   const [previous, setPrevious] = useState<Record<string, StepMastery>>({});
   useEffect(() => {
     let live = true;
-    loadMastery(workflowId, LEARNER).then((m) => live && setPrevious(m));
+    if (workflowId) loadMastery(workflowId, LEARNER).then((m) => live && setPrevious(m));
     return () => {
       live = false;
     };
@@ -57,19 +68,11 @@ export function useCoach(map: WorkMap, workflowId: string) {
     if (value === "learned" && masteryRef.current[stepId] === "relearn") return;
     masteryRef.current = { ...masteryRef.current, [stepId]: value };
     setMastery(masteryRef.current);
-    saveMastery(workflowId, LEARNER, { [stepId]: value });
+    if (workflowId) saveMastery(workflowId, LEARNER, { [stepId]: value });
   }
 
-  const steps = map.steps.map((s) => ({
-    id: s.id,
-    title: (s.correction ? s.correction : s.title) + (previous[s.id] === "relearn" ? " (needed relearning last time: guide this one a bit more)" : ""),
-    detail: s.decision,
-    why: s.expertQuote || s.reason,
-    rule: s.guardrails.join("; "),
-  }));
-
   async function onFrame(f: Frame) {
-    if (!f.changed || inFlight.current) return;
+    if (!f.changed || inFlight.current || !workflowId) return;
     inFlight.current = true;
     setReading(true);
     const now = elapsed();
@@ -78,25 +81,26 @@ export function useCoach(map: WorkMap, workflowId: string) {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ frame: f.dataUrl, previous: lastSent.current, steps, done: l.done, flagged: l.flagged, actions: actions.current, recent: recent.current, now }),
+        body: JSON.stringify({ workflowId, frame: f.dataUrl, previous: lastSent.current, recent: recent.current, history: actions.current.slice(-5).map((a) => a.text) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       lastSent.current = f.dataUrl;
       setError(null);
       if (data.action) actions.current = [...actions.current, { time: now, text: data.action }];
+      if (data.verdict === "no_match" && data.action) setUncovered(data.action);
+      if (data.verdict === "match" || data.verdict === "different") setUncovered(null);
       if (data.verdict === "match" && data.stepId) {
         if (!l.done.includes(data.stepId)) setDone((d) => [...d, data.stepId]);
         mark(data.stepId, "learned");
       }
       if (data.verdict === "different") {
-        const step = map.steps.find((s) => s.id === data.stepId);
         const item: ReviewItem = {
           id: `r${Date.now()}`,
           time: now,
           screenshot: watcher.current.grab(640) ?? undefined,
           observed: data.action ?? "Something on this screen",
-          expected: step ? `${step.correction || step.title}${step.guardrails[0] ? `: ${step.guardrails[0]}` : ""}` : "Paul's usual way",
+          expected: `${data.stepTitle}: "${data.evidence}"`, // the expert's own words, quoted from the retrieved step
           note: data.message ?? "",
           workflowId,
           stepId: data.stepId ?? undefined,
@@ -107,8 +111,8 @@ export function useCoach(map: WorkMap, workflowId: string) {
         saveReviews({ learner: LEARNER, items: [...pendingReviews.current, ...next], submitted: false });
         if (data.stepId && !l.flagged.includes(data.stepId)) setFlagged((x) => [...x, data.stepId]);
       }
-      if (data.message && (data.verdict === "match" || data.verdict === "different")) {
-        setMessage({ text: data.message, verdict: data.verdict, time: now });
+      if (data.message && data.evidence && (data.verdict === "match" || data.verdict === "different")) {
+        setMessage({ text: data.message, verdict: data.verdict, time: now, stepTitle: data.stepTitle, evidence: data.evidence });
         toSay.current = data.message;
         recent.current = [...recent.current, data.message].slice(-4);
       }
@@ -144,6 +148,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
     setFlagged([]);
     setReviews([]);
     setMessage(null);
+    setUncovered(null);
     setFinished(false);
     masteryRef.current = {};
     setMastery({});
@@ -153,6 +158,10 @@ export function useCoach(map: WorkMap, workflowId: string) {
     loadReviews().then((prev) => {
       pendingReviews.current = prev && !prev.submitted ? prev.items : [];
     });
+    if (!workflowId) {
+      setError("Pick an approved workflow first.");
+      return;
+    }
     try {
       await watcher.current.start((f) => onFrame(f), () => setSharing(false));
       setSharing(true);
@@ -176,18 +185,12 @@ export function useCoach(map: WorkMap, workflowId: string) {
     }
   }
 
-  // Give the agent the Work Map once connected.
-  useEffect(() => {
-    if (!agent.connected) return;
-    agent.sendContextualUpdate(`[WORKMAP] ${JSON.stringify(map)}`);
-    const again = map.steps.filter((s) => previous[s.id] === "relearn").map((s) => s.correction || s.title);
-    if (again.length) agent.sendContextualUpdate(`[PROGRESS] Last time Maya needed to relearn: ${again.join("; ")}. Give those steps a little extra guidance.`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agent.connected]);
+  // The voice agent gets no Work Map: it only reads out [GUIDE] lines, which come from the
+  // server already grounded in a quoted step. It can't improvise rules from a map it never saw.
 
   const status: CoachStatus = finished ? "done" : !sharing ? "idle" : agent.status === "connecting" ? "connecting" : agent.isSpeaking ? "speaking" : reading ? "reading" : "watching";
 
-  return { status, sharing, done, flagged, reviews, message, finished, mastery, previous, error: error ?? agent.error, start, stop, transcript: agent.transcript, connected: agent.connected, micLevel: agent.getInputVolume };
+  return { status, sharing, done, flagged, reviews, message, uncovered, finished, mastery, previous, error: error ?? agent.error, start, stop, transcript: agent.transcript, connected: agent.connected, micLevel: agent.getInputVolume };
 }
 
 export type Coach = ReturnType<typeof useCoach>;

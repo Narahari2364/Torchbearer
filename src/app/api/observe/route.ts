@@ -25,23 +25,23 @@ Return JSON only:
   "question": string | null
 }
 
-action: one sentence on what the expert did between PREVIOUS and CURRENT, with the specifics a colleague would need: which record or item, key values, and the NAMES of any documents attached or removed (e.g. "Saved a 40.00 meal expense at Brauhaus Kesselmann with two attachments: the receipt and an approval screenshot"). null if nothing meaningful changed (scrolling, mouse moves, typing in progress).
+action: one sentence on what the expert did between PREVIOUS and CURRENT, with the specifics a colleague would need: which record or item, key values, and the NAMES of any documents attached or removed. null if nothing meaningful changed (scrolling, mouse moves, typing in progress).
 
-workflow: the FULL workflow so far, in order. Keep every existing step, its id, why and rule. Add a step only for a new meaningful kind of action; when the expert repeats an earlier kind of action differently, add a step for the difference (e.g. "Attach the supervisor's approval for this one"). Use NOW as time for new steps. Leave why and rule as they are; never invent them.
+workflow: the FULL workflow so far, in order. Keep every existing step, its id, why and rule. Add a step only for a new meaningful kind of action; when the expert repeats an earlier kind of action differently, add a step for the difference. Use NOW as time for new steps. Leave why and rule as they are; never invent them.
 
 question: this is what makes you an apprentice, not a recorder. Compare the CURRENT action with the ACTION LOG.
 - Best question: the expert handled a similar thing differently than before in the ACTION LOG (an extra or missing attachment, a different choice for a similar item). Ask what the difference is for.
 - On the first time you see a kind of action, ask only if a choice looks unusual or like a rule, limit or exception. Routine form-filling (entering amounts, names, dates) is not worth a question.
 - Never ask about what the screen already shows. Never repeat an asked question.
-- At most 15 words, friendly, about what just happened, e.g. "You added a screenshot to this one but not the first. What's it for?"
+- At most 15 words, friendly, about what just happened on screen.
 - Otherwise null.
 
 Never include personal data (emails, phone, card or bank numbers).`;
 
 const INTEGRATE = `You keep an expert's workflow. The expert just answered questions out loud.
 Write each answer into the workflow step it is about:
-- "why": the reason, close to the expert's own words (one or two sentences).
-- "rule": any limit, exception or stop condition they state, as a short rule (e.g. "Over 30 per person: attach the supervisor's approval (date, amount, who was there)"). null if none.
+- "why": the reason, close to the expert's own words (one or two sentences). Only what the expert said.
+- "rule": any limit, exception or stop condition they state, as a short rule in the expert's own terms and numbers. null if none. Never add a limit, number or condition the expert did not say.
 If an answer describes a rule that applies to a step not in the workflow yet, add that step with the answer's time.
 Keep all steps, ids, titles and times. Return JSON only: { "workflow": [ ${STEP_SHAPE} ] }`;
 

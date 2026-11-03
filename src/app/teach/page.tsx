@@ -12,7 +12,7 @@ import Launcher from "@/features/observe/Launcher";
 import { useCoach } from "@/features/observe/useCoach";
 import { pipSupported, usePip } from "@/features/observe/usePip";
 import { requestMic } from "@/lib/useVoiceAgent";
-import { exampleSummary, exampleWorkflow, getWorkflow, listWorkflows } from "@/lib/session";
+import { getWorkflow, listWorkflows } from "@/lib/session";
 import type { WorkflowRecord, WorkflowSummary } from "@/lib/types";
 
 const readId = () => {
@@ -33,10 +33,10 @@ export default function TeachPage() {
 
 function Teach() {
   const idParam = useSyncExternalStore(() => () => {}, readId, () => null);
-  // From the database: every trained workflow, plus the prepared example.
-  const [workflows, setWorkflows] = useState<WorkflowSummary[]>([exampleSummary()]);
+  // From the database only: the workflows experts recorded. No built-in examples.
+  const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   useEffect(() => {
-    listWorkflows().then((list) => setWorkflows([...list, exampleSummary()]));
+    listWorkflows().then(setWorkflows);
   }, []);
   const [picked, setPicked] = useState<string | null | undefined>(undefined); // undefined = use ?id
   const selectedId = picked === undefined ? idParam : picked;
@@ -50,7 +50,7 @@ function Teach() {
   }, [selectedId]);
   const selected = selectedRaw && selectedRaw.id === selectedId && selectedRaw.map.published ? selectedRaw : null; // only approved workflows teach
 
-  const c = useCoach(selected?.map ?? exampleWorkflow().map, selected?.id ?? "none");
+  const c = useCoach(selected);
   const pip = usePip();
   const [micError, setMicError] = useState<string | null>(null);
   const canPip = useSyncExternalStore(() => () => {}, pipSupported, () => true);

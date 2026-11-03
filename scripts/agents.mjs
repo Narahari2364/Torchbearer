@@ -23,13 +23,13 @@ const agents = [
     envKey: "ELEVENLABS_INTERVIEWER_AGENT_ID",
     name: "Torchbearer - Interviewer",
     prompt: interviewerPrompt,
-    firstMessage: "Hi Paul, I'm Torchbearer. Go ahead and show me how you submit your expenses. I'll stay quiet and only ask when you pause.",
+    firstMessage: "Hi Paul, I'm Torchbearer. Go ahead and show me the task. I'll stay quiet and only ask when you pause.",
   },
   {
     envKey: "ELEVENLABS_TUTOR_AGENT_ID",
     name: "Torchbearer - Tutor",
     prompt: tutorPrompt,
-    firstMessage: "Hi Maya, I'm Torchbearer. I'll guide you through this the way Paul does it, and only speak up when you pause. Start whenever you're ready.",
+    firstMessage: "Hi Maya, I'm Torchbearer. I'll guide you based on what Paul recorded, and only speak up when you pause. Start whenever you're ready.",
   },
 ];
 

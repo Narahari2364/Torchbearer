@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import ExportDialog from "@/features/workmap/ExportDialog";
 import { TypeChip, guardrailType } from "@/features/workmap/WorkMapView";
-import { EXAMPLE_ID, exampleWorkflow, getWorkflow, listWorkflows, saveWorkflow } from "@/lib/session";
+import { getWorkflow, listWorkflows, saveWorkflow } from "@/lib/session";
 import type { WorkflowSummary } from "@/lib/types";
 import type { WorkflowRecord, WorkMapStep } from "@/lib/types";
 
@@ -38,7 +38,7 @@ export default function MappingPage() {
     listWorkflows().then(async (list) => {
       if (!live) return;
       setLibrary(list);
-      const loaded = (await getWorkflow(idParam ?? list[0]?.id)) ?? exampleWorkflow();
+      const loaded = await getWorkflow(idParam ?? list[0]?.id);
       if (live) {
         setRecord(loaded);
         setLoading(false);
@@ -49,9 +49,9 @@ export default function MappingPage() {
     };
   }, [idParam]);
 
-  const wf = record ?? exampleWorkflow();
+  const wf: WorkflowRecord = record ?? { id: "", name: "", createdAt: "", map: { task: "", steps: [], gaps: [], confirmed: false } };
   const map = wf.map;
-  const isExample = wf.id === EXAMPLE_ID;
+  const isExample = false;
 
   const [view, setView] = useState<"check" | "final">("check");
   const [draft, setDraft] = useState<WorkMapStep[] | null>(null);
@@ -79,7 +79,7 @@ export default function MappingPage() {
     if (immediate) write();
     else saveTimer.current = setTimeout(write, 600);
   }
-  function review(id: string, value: "ok" | "wrong") {
+  function review(id: string, value: "ok" | "wrong" | "not_needed") {
     persist({ ...wf, map: { ...map, published: false, steps: map.steps.map((s) => (s.id === id ? { ...s, review: value } : s)) } });
   }
   function setCorrection(id: string, text: string) {
@@ -98,7 +98,8 @@ export default function MappingPage() {
     setDraft(finalSteps.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }
   function save() {
-    const steps = finalSteps.map((s, i) => ({ ...s, order: i + 1, review: "ok" as const, correction: undefined }));
+    // "Not needed" survives saving: Teaching treats those steps as low-value and never flags them.
+    const steps = finalSteps.map((s, i) => ({ ...s, order: i + 1, review: s.review === "not_needed" ? ("not_needed" as const) : ("ok" as const), correction: undefined }));
     persist({ ...wf, map: { ...map, steps, published: true, confirmed: true } }, true);
     setDraft(null);
     setEditing(null);
@@ -118,6 +119,18 @@ export default function MappingPage() {
   if (loading) {
     return <div className="grid min-h-full place-items-center bg-[#f6f8fc] text-[15px] text-[#667085]">Loading the workflow from the database…</div>;
   }
+  if (!record) {
+    // Nothing recorded: there is nothing to map and nothing Torchbearer could teach.
+    return (
+      <div className="grid min-h-full place-items-center bg-[#f6f8fc] p-6 text-center">
+        <div>
+          <div className="text-[22px] font-light text-[#1f2d3d]">No recorded workflows yet</div>
+          <p className="mt-2 text-[15px] text-[#667085]">Torchbearer only knows what an expert records and approves.</p>
+          <Link href="/capture" className="mt-5 inline-flex h-11 items-center rounded-sm bg-indigo px-5 text-[15px] text-white hover:bg-indigo-dark">Record one in Capture →</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#f6f8fc]">
@@ -131,7 +144,6 @@ export default function MappingPage() {
               {library.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}{w.published ? "" : " · on hold"}</option>
               ))}
-              <option value={EXAMPLE_ID}>{exampleWorkflow().name}</option>
             </select>
           </div>
           <div className="rise flex flex-wrap items-start gap-6">
@@ -177,7 +189,6 @@ export default function MappingPage() {
               ))}
             </div>
           )}
-          {isExample && <p className="mt-4 text-[13px] text-[#667085]">The prepared example is read-only. Record your own workflow in Capture.</p>}
         </div>
       </section>
 

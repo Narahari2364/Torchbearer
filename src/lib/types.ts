@@ -66,7 +66,7 @@ export interface WorkMapStep {
   time: string; // screen moment, "mm:ss"
   screenshot?: string; // data URL or /public path
   docId?: string; // Ledgerline document for this step; /map opens it via open_document
-  review?: "ok" | "wrong"; // the expert's check of this observation in Mapping
+  review?: "ok" | "wrong" | "not_needed"; // the expert's check in Mapping (not_needed = low-value, never graded against)
   correction?: string; // what really happened, when the expert marked it wrong
   decision: string; // "" for routine steps
   reason: string;
