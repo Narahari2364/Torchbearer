@@ -45,8 +45,8 @@ Data is JSON in the private Blob store ([src/lib/db.ts](src/lib/db.ts)): `workfl
 
 ```
 src/app/        pages and API routes
-src/features/   observe/ (capture + coach bots), workmap/, apprentice/ (shared popup + dialog)
-src/lib/        gemini, db, redact, retrieval, session, types
+src/features/   observe/ (capture + coach bots), workmap/, apprentice/ (shared popup + dialog), plus a few legacy folders
+src/lib/        gemini, db, redact, session, types
 public/ledgerline/   the demo work app
 docs/           formats, agent prompts, pitch, design mocks
 scripts/        agents.mjs
