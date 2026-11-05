@@ -10,8 +10,8 @@
     "agents": "node scripts/agents.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1162.0",
     "@elevenlabs/react": "^1.16.0",
-    "@vercel/blob": "^2.8.0",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8"

@@ -1,35 +1,40 @@
-// Server-only database: a PRIVATE Vercel Blob store ("torchbearer-db", BLOB_READ_WRITE_TOKEN).
+// Server-only database: a PRIVATE Amazon S3 bucket (S3_BUCKET, S3_REGION).
 // Everything is a JSON document:
 //   workflows/index.json            summaries of all trained workflows
 //   workflows/<id>.json             a full workflow (steps, reasons, rules, screenshots)
 //   progress/<workflow>/<learner>.json   learned / relearn per step
 //   reviews/current.json            the supervisor's review batch
-// Reads skip the CDN cache so a save is visible right away (e.g. a just-approved workflow).
-import { del, get, put } from "@vercel/blob";
+// S3 reads are strongly consistent, so a save is visible right away (e.g. a just-approved workflow).
+// Credentials: on Amplify, the app's IAM compute role; locally, your AWS profile (AWS_PROFILE).
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+const Bucket = process.env.S3_BUCKET!;
+const s3 = new S3Client({ region: process.env.S3_REGION || "us-east-1" });
 
 export async function readJson<T>(pathname: string): Promise<T | null> {
   try {
-    const r = await get(pathname, { access: "private", useCache: false });
-    if (!r || r.statusCode !== 200) return null;
-    return JSON.parse(await new Response(r.stream).text()) as T;
+    const r = await s3.send(new GetObjectCommand({ Bucket, Key: pathname }));
+    const text = await r.Body?.transformToString();
+    return text ? (JSON.parse(text) as T) : null;
   } catch {
     return null; // not found yet
   }
 }
 
 export async function writeJson(pathname: string, data: unknown): Promise<void> {
-  await put(pathname, JSON.stringify(data), {
-    access: "private",
-    allowOverwrite: true,
-    addRandomSuffix: false,
-    contentType: "application/json",
-    cacheControlMaxAge: 60,
-  });
+  await s3.send(
+    new PutObjectCommand({
+      Bucket,
+      Key: pathname,
+      Body: JSON.stringify(data),
+      ContentType: "application/json",
+    }),
+  );
 }
 
 export async function remove(pathname: string): Promise<void> {
   try {
-    await del(pathname);
+    await s3.send(new DeleteObjectCommand({ Bucket, Key: pathname }));
   } catch {
     /* already gone */
   }
