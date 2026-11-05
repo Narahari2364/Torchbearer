@@ -25,7 +25,7 @@ import EventLog from "./EventLog";
 
 const PAUSE_MS = 3500;
 const MIN_GAP_MS = 20000;
-const EXPERT = "Paul Adler";
+const EXPERT = "you"; // the expert is the person using Capture
 
 // Actions worth a "why" question. Plain amount typing is not: the screen already answers it.
 const JUDGMENT_FIELDS = new Set(["type_of_meal", "location", "business_purpose"]);
@@ -125,7 +125,7 @@ function Interviewer({ stage, setStage }: Props) {
         .map((h) => `- ${h.description}`)
         .join("\n");
       sendToAgent(
-        `[PAUSE] Paul paused right after: ${e.description}.${earlier ? `\nEarlier expenses he saved:\n${earlier}` : ""}\nIf he handled this one differently from a similar earlier one, ask what the difference is. Otherwise ask one short question about why, a limit, or when he would stop and ask.`,
+        `[PAUSE] The expert paused right after: ${e.description}.${earlier ? `\nEarlier expenses they saved:\n${earlier}` : ""}\nIf they handled this one differently from a similar earlier one, ask what the difference is. Otherwise ask one short question about why, a limit, or when they would stop and ask.`,
         { respond: true },
       );
       const field = fieldFor(e);
@@ -214,7 +214,7 @@ function Interviewer({ stage, setStage }: Props) {
     // Remember the window so the Work Map can show it as a gap.
     if (next) offRanges.current.push({ from: elapsed(), to: "" });
     else if (offRanges.current.length) offRanges.current[offRanges.current.length - 1].to = elapsed();
-    sendToAgent(next ? "[SCREEN] Paul went off the record." : "[SCREEN] Paul is back on the record.");
+    sendToAgent(next ? "[SCREEN] The expert went off the record." : "[SCREEN] The expert is back on the record.");
   }
 
   function endTask() {
@@ -222,7 +222,7 @@ function Interviewer({ stage, setStage }: Props) {
     setDebriefFrom(agent.transcript.length);
     sendCommand({ cmd: "clear_highlight" });
     sendToAgent(
-      `[DEBRIEF] Paul is done with the task (${task}). Everything that happened on screen:\n${recordedEvents()
+      `[DEBRIEF] The expert is done with the task (${task}). Everything that happened on screen:\n${recordedEvents()
         .map((e) => `${e.time} ${e.description}`)
         .join("\n")}\nStart the debrief now.`,
       { respond: true },
@@ -297,8 +297,8 @@ function Interviewer({ stage, setStage }: Props) {
     : "listening";
 
   const lastAgent = [...agent.transcript].reverse().find((t) => t.speaker === "agent");
-  // Folds to a small bar while Paul works; opens while the agent speaks and keeps its
-  // question visible until Paul answers or does the next thing on screen.
+  // Folds to a small bar while the expert works; opens while the agent speaks and keeps its
+  // question visible until the expert answers or does the next thing on screen.
   const lastEvent = seenEvents[seenEvents.length - 1];
   const questionShowing = lastLine?.speaker === "agent" && !(lastEvent && lastEvent.time > lastLine.time);
   const autoFold = phase === "task" && agent.connected && !agent.isSpeaking && !questionShowing && !offRecord && !buildError && !agent.error;
@@ -346,13 +346,13 @@ function Interviewer({ stage, setStage }: Props) {
           footer={
             <>
               <span className="flex-1 text-[13px] text-muted">Explained back in under a minute</span>
-              <button className={btnIndigoOutline} disabled={!agent.connected} onClick={() => sendToAgent("[CORRECT] Paul wants to correct a step.", { respond: true })}>
+              <button className={btnIndigoOutline} disabled={!agent.connected} onClick={() => sendToAgent("[CORRECT] The expert wants to correct a step.", { respond: true })}>
                 Correct a step
               </button>
               <button
                 className={btnIndigo}
                 onClick={() => {
-                  sendToAgent("[SCREEN] Paul confirmed the teach-back: yes, that's how it works.");
+                  sendToAgent("[SCREEN] The expert confirmed the teach-back: yes, that's how it works.");
                   buildMap();
                 }}
               >
@@ -367,7 +367,7 @@ function Interviewer({ stage, setStage }: Props) {
           <p className="px-5 pb-3 text-[16px]">Did I get that right?</p>
           {reply && (
             <div className="border-y border-line bg-panel-2 px-5 py-2 text-right text-[14.5px]">
-              <b className="text-[#0f766e]">Paul</b> “{reply.text}”
+              <b className="text-[#0f766e]">You</b> “{reply.text}”
             </div>
           )}
           {errorBox}
@@ -388,7 +388,7 @@ function Interviewer({ stage, setStage }: Props) {
             {agent.connected ? (
               <>
                 <button className={btnIndigoOutline} onClick={toggleOffRecord}>{offRecord ? "Back on record" : "Off the record"}</button>
-                <button className={btnIndigoOutline} onClick={() => sendToAgent("[SKIP] Paul wants to skip this question.", { respond: true })}>Skip question</button>
+                <button className={btnIndigoOutline} onClick={() => sendToAgent("[SKIP] The expert wants to skip this question.", { respond: true })}>Skip question</button>
               </>
             ) : (
               <button className={btnIndigo} onClick={buildMap}>Build Work Map</button>
@@ -411,7 +411,7 @@ function Interviewer({ stage, setStage }: Props) {
             <span className={`mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full text-[12px] font-bold text-white ${x.a ? "bg-ok" : "bg-indigo"}`}>{i + 1}</span>
             <div className="flex-1 text-[16px] leading-snug">
               {x.q}
-              {x.a && <div className="mt-0.5 text-[14.5px] text-[#0f766e]">Paul: “{x.a}”</div>}
+              {x.a && <div className="mt-0.5 text-[14.5px] text-[#0f766e]">You: “{x.a}”</div>}
             </div>
             <span className="text-[13px] text-muted">{x.a ? "✓ answered" : "asking now…"}</span>
           </div>
@@ -456,7 +456,7 @@ function Interviewer({ stage, setStage }: Props) {
                   {agent.transcript.length === 0 && <li className="text-muted">No conversation yet.</li>}
                   {agent.transcript.map((t, i) => (
                     <li key={i}>
-                      <b className={t.speaker === "agent" ? "text-indigo" : ""}>{t.speaker === "agent" ? "Apprentice" : "Paul"}:</b> {t.text}
+                      <b className={t.speaker === "agent" ? "text-indigo" : ""}>{t.speaker === "agent" ? "Apprentice" : "You"}:</b> {t.text}
                     </li>
                   ))}
                 </ol>

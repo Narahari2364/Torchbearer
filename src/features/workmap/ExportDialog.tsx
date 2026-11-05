@@ -37,7 +37,7 @@ export default function ExportDialog({ map, onClose }: { map: WorkMap; onClose: 
       width={940}
       footer={
         <>
-          <span className="flex-1 text-[13.5px] text-[#444]">The agent follows Paul&apos;s steps and stops where he would.</span>
+          <span className="flex-1 text-[13.5px] text-[#444]">The agent follows the expert&apos;s steps and stops where they would.</span>
           <button className={btnIndigoOutline} onClick={onClose}>Cancel</button>
           <button className={btnIndigo} onClick={() => downloadText(file, text, format === "md" ? "text/markdown" : "application/json")}>
             Download {file} ↓
@@ -51,7 +51,7 @@ export default function ExportDialog({ map, onClose }: { map: WorkMap; onClose: 
           {formatOption("md", "Markdown · for any AI agent", "Paste into ChatGPT, Claude or a company bot's instructions")}
           {formatOption("json", "JSON · for developers", "Build new tools or checks on top of it")}
           <div className="pt-2 text-[13px] font-bold uppercase tracking-wide text-[#333]">Include</div>
-          {include("quotes", "Paul's quotes")}
+          {include("quotes", "Expert quotes")}
           {include("guardrails", "Guardrails")}
           {include("screenMoments", "Screen moments (times)")}
           <p className="text-[13px] text-[#444]">Names and card numbers are removed from the export.</p>

@@ -1,5 +1,5 @@
 // Teach-mode Save guard for Ledgerline meal expenses. Returns ok: false to block.
-// Paul's two rules from the demo script; explanations quote him from the Work Map.
+// The expert's two rules from the demo script; explanations quote him from the Work Map.
 // `fields` are Ledgerline data-field names the mock highlights (guests, attachments).
 
 import type { DocFacts, ExpenseSnapshot, GuardrailResult, RuleKey, WorkMap, WorkMapStep } from "@/lib/types";
@@ -14,7 +14,7 @@ function findStep(map: WorkMap, pattern: RegExp): WorkMapStep | undefined {
 }
 
 function quote(step: WorkMapStep | undefined, fallback: string) {
-  return `Paul said: “${step?.expertQuote || fallback}”`;
+  return `The expert said: “${step?.expertQuote || fallback}”`;
 }
 
 export function checkGuardrails(exp: ExpenseSnapshot, workMap: WorkMap): GuardrailResult {

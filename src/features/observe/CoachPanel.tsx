@@ -38,7 +38,7 @@ export default function CoachPanel({ c, workflows, selected, onSelect }: Props) 
         <BotFace size={34} />
         <div className="min-w-0 flex-1 leading-tight">
           <div className="text-[17px] font-medium">Torchbearer</div>
-          <div className="truncate text-[12.5px] opacity-90">{selected ? `Guiding Maya · ${selected.name}` : "Teaching Maya Paul's way"}</div>
+          <div className="truncate text-[12.5px] opacity-90">{selected ? `Practising · ${selected.name}` : "Learning from your team's experts"}</div>
         </div>
         <span className="rounded-sm border border-white/70 px-2 py-0.5 text-[11px] font-bold tracking-wide">TEACHING MODE</span>
       </div>
@@ -46,7 +46,7 @@ export default function CoachPanel({ c, workflows, selected, onSelect }: Props) 
       {!selected ? (
         // Step 1: which workflow?
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <p className="text-[16px] leading-snug">Hi Maya! Which workflow do you want to practise?</p>
+          <p className="text-[16px] leading-snug">Hi! Which workflow do you want to practise?</p>
           <ul className="mt-3 space-y-2">
             {workflows.map((w) => {
               const ready = w.published;
@@ -59,7 +59,7 @@ export default function CoachPanel({ c, workflows, selected, onSelect }: Props) 
                   >
                     <div className="text-[15px] font-medium">{w.name}</div>
                     <div className="text-[12.5px] text-[#667085]">
-                      {w.stepCount} steps · {ready ? "approved by Paul" : "on hold, waiting for Paul's approval"}
+                      {w.stepCount} steps · {ready ? "approved by the expert" : "on hold, waiting for the expert's approval"}
                     </div>
                   </button>
                 </li>
@@ -98,7 +98,7 @@ export default function CoachPanel({ c, workflows, selected, onSelect }: Props) 
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             <div className="mb-2 flex items-center text-[12px] font-bold uppercase tracking-[.12em] text-[#667085]">
-              Paul&apos;s steps
+              The expert&apos;s steps
               <span className="ml-auto font-normal normal-case tracking-normal">{learned} learned · {relearn} to relearn</span>
             </div>
             <ol className="space-y-2">

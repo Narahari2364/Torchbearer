@@ -21,7 +21,7 @@ export default function DesignPreview() {
   const [state, setState] = useState<State>("start");
 
   const popup = {
-    expert: "Paul Adler",
+    expert: "you",
     review: false,
     taskPhase: true,
     connected: true,

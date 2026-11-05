@@ -22,7 +22,7 @@ const readId = () => {
 
 /** The corrected version of a step: the expert's correction replaces what Torchbearer thought it saw. */
 const corrected = (s: WorkMapStep): WorkMapStep =>
-  s.review === "wrong" && s.correction?.trim() ? { ...s, title: s.correction.trim(), decision: `Corrected by Paul (Torchbearer saw: ${s.title})` } : s;
+  s.review === "wrong" && s.correction?.trim() ? { ...s, title: s.correction.trim(), decision: `Corrected by the expert (Torchbearer saw: ${s.title})` } : s;
 
 export default function MappingPage() {
   const idParam = useSyncExternalStore(() => () => {}, readId, () => null);
@@ -110,7 +110,7 @@ export default function MappingPage() {
 
   const tiles: [number, string, string][] = [
     [map.steps.length, "Steps observed", "text-[#1f2d3d]"],
-    [checked, "Checked by Paul", "text-ok"],
+    [checked, "Checked by the expert", "text-ok"],
     [wrong, "Corrected", "text-err"],
     [map.steps.length - checked, "Still to check", "text-[#7a5a00]"],
   ];
@@ -139,7 +139,7 @@ export default function MappingPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-sm border border-indigo/30 bg-indigo-soft px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide text-indigo">Module 2 · Mapping</span>
                 <span className={`rounded-full px-2.5 py-1 text-[12.5px] font-medium ${approved ? "bg-ok-soft text-ok" : "bg-warn-soft text-[#7a5a00]"}`}>
-                  {approved ? "● Saved · Torchbearer trained, all set" : "● On hold · waiting for Paul's approval"}
+                  {approved ? "● Saved · Torchbearer trained, all set" : "● On hold · waiting for the expert's approval"}
                 </span>
                 {!isExample && (
                   <span className={`text-[12.5px] ${saveState === "error" ? "text-err" : "text-[#667085]"}`}>
@@ -153,7 +153,7 @@ export default function MappingPage() {
                   ? approved && !draft
                     ? "The saved workflow Torchbearer teaches. Revise it any time."
                     : "This is the corrected workflow Torchbearer will learn. Edit any step, then save. Or go back and revise your checks."
-                  : "Step by step, everything Torchbearer saw while Paul worked. Mark each step correct, or tell it what really happened. Then continue to see the corrected workflow."}
+                  : "Step by step, everything Torchbearer saw while the expert worked. Mark each step correct, or tell it what really happened. Then continue to see the corrected workflow."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -206,7 +206,7 @@ export default function MappingPage() {
                         </div>
                       </div>
                       {s.expertQuote && (
-                        <div className="mt-3 rounded-md bg-indigo-soft/60 px-3 py-2 text-[14.5px]"><b className="text-indigo">Why (Paul):</b> “{s.expertQuote}”</div>
+                        <div className="mt-3 rounded-md bg-indigo-soft/60 px-3 py-2 text-[14.5px]"><b className="text-indigo">Why, in the expert&apos;s words:</b> “{s.expertQuote}”</div>
                       )}
                       {s.guardrails.map((g) => (
                         <div key={g} className="mt-2 flex items-start gap-2 text-[14px]"><TypeChip type={guardrailType(g)} /> {g}</div>
@@ -231,7 +231,7 @@ export default function MappingPage() {
             </ol>
             {(map.offRecord ?? []).map((r) => (
               <p key={r.from} className="mt-4 rounded-md border border-dashed border-[#b9bdc4] bg-white px-4 py-2.5 text-[14px] text-[#555]">
-                <b>Off the record</b> {r.from}–{r.to}: Paul paused the recording here. Nothing was saved.
+                <b>Off the record</b> {r.from}–{r.to}: The expert paused the recording here. Nothing was saved.
               </p>
             ))}
             <div className="mt-6 flex items-center justify-end gap-3">
@@ -257,13 +257,13 @@ export default function MappingPage() {
                         {isEditing ? (
                           <div className="space-y-2">
                             <Field label="Step" value={s.title} onChange={(v) => editStep(s.id, { title: v })} />
-                            <Field label="Why (Paul's words)" value={s.expertQuote} onChange={(v) => editStep(s.id, { expertQuote: v, reason: v })} />
+                            <Field label="Why (in the expert's words)" value={s.expertQuote} onChange={(v) => editStep(s.id, { expertQuote: v, reason: v })} />
                             <Field label="Rule (limit, exception or when to stop)" value={s.guardrails[0] ?? ""} onChange={(v) => editStep(s.id, { guardrails: v.trim() ? [v] : [] })} />
                           </div>
                         ) : (
                           <>
                             <div className="text-[17.5px] leading-snug text-[#1f2d3d]">{s.title}</div>
-                            {s.decision?.startsWith("Corrected by Paul") && <div className="mt-0.5 text-[13px] text-err">{s.decision}</div>}
+                            {s.decision?.startsWith("Corrected by") && <div className="mt-0.5 text-[13px] text-err">{s.decision}</div>}
                             {s.expertQuote && <div className="mt-2 text-[14.5px] text-[#475467]"><b className="text-indigo">Why:</b> “{s.expertQuote}”</div>}
                             {s.guardrails.map((g) => (
                               <div key={g} className="mt-1.5 flex items-start gap-2 text-[14px]"><TypeChip type={guardrailType(g)} /> {g}</div>

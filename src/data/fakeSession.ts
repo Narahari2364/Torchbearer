@@ -1,6 +1,6 @@
 import type { ScreenEvent, TranscriptLine } from "@/lib/types";
 
-// Paul's session from the demo script, as Ledgerline events + the voice transcript.
+// The expert's session from the demo script, as Ledgerline events + the voice transcript.
 // Use this to build the Work Map / debrief without running a live capture.
 
 const e = (time: string, type: string, description: string, extra: Partial<ScreenEvent> = {}): ScreenEvent => ({

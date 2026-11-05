@@ -10,7 +10,7 @@ import type { TranscriptLine } from "@/lib/types";
 
 type Turn = { who: "agent" | "expert"; text: string };
 
-// Learning mode: one question per pause, then Paul's (simulated) answer.
+// Learning mode: one question per pause, then the expert's (simulated) answer.
 const LIVE: Turn[][] = [
   [
     { who: "agent", text: "You added a screenshot on this one that wasn't on the first one. What's that for?" },
@@ -59,8 +59,8 @@ const TUTOR = {
   afterReceipt: "Right. This one's a delivery order, not a sit-down restaurant. What do you think you need besides the receipt?",
   afterInvoice: "Exactly. Delivery orders need both, restaurant receipts don't. What do you think you do next?",
   blocked: "Not yet. This one's $35. What does that number remind you of?",
-  blockedAgain: "Look at the amount again, and think about what Paul said about meals over $30 a person.",
-  hint: "Look at the amount. What did Paul do for meals over $30 a person?",
+  blockedAgain: "Look at the amount again, and think about what the expert said about meals over $30 a person.",
+  hint: "Look at the amount. What did the expert do for meals over $30 a person?",
   done: "You've got the delivery-invoice rule down cold. The one thing to practice: catching the $30 threshold yourself, without me prompting you. That's the part you hesitated on.",
   again: "Here's another one. Take it from the top: what do you upload first?",
 };
@@ -101,7 +101,7 @@ export function useMockVoiceAgent(role: "interviewer" | "tutor") {
   }
   const say = (text: string) => play([{ who: "agent", text }]);
 
-  // Ask the scripted question that fits what Paul just did (approval screenshot → Q1,
+  // Ask the scripted question that fits what the expert just did (approval screenshot → Q1,
   // delivery-app files → Q2 then Q3), anything else gets a generic limit question.
   function pickLive(pause: string): Turn[] {
     const used = askedLive.current;

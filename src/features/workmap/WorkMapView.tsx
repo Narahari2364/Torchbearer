@@ -1,6 +1,6 @@
 "use client";
 // Work Map, following the Review-mode design: a clickable timeline (◆ judgment call,
-// ● routine step), the selected step (screen moment, decision, reason in Paul's words,
+// ● routine step), the selected step (screen moment, decision, reason in the expert's words,
 // typed guardrails), and a column with all guardrails, off-the-record gaps and open questions.
 
 import type { ReactNode } from "react";
@@ -111,7 +111,7 @@ export default function WorkMapView({ map, selected, onSelect, onReplay }: Props
               <div className="overflow-hidden rounded-md border border-line">
                 {selected.screenshot ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selected.screenshot} alt={`Paul's screen at ${selected.time}`} className="w-full" />
+                  <img src={selected.screenshot} alt={`Expert's screen at ${selected.time}`} className="w-full" />
                 ) : (
                   <div className="bg-[linear-gradient(135deg,#2F74D0,#5146d9)] px-4 py-6 text-white">
                     <div className="text-[12px] uppercase tracking-wide opacity-80">Ledgerline · Meals / Drinks</div>
@@ -120,7 +120,7 @@ export default function WorkMapView({ map, selected, onSelect, onReplay }: Props
                   </div>
                 )}
                 <div className="flex items-center justify-between bg-[#f9fafb] px-3 py-2">
-                  <span className="text-[12.5px] text-[#667085]">{selected.docId ? "Opens Paul's document" : selected.screenshot ? "Saved screenshot" : "No recording"}</span>
+                  <span className="text-[12.5px] text-[#667085]">{selected.docId ? "Opens the expert's document" : selected.screenshot ? "Saved screenshot" : "No recording"}</span>
                   <button
                     onClick={() => onReplay(selected)}
                     disabled={!selected.docId && !selected.screenshot}
@@ -138,13 +138,13 @@ export default function WorkMapView({ map, selected, onSelect, onReplay }: Props
                   <p className="mb-5 text-[16px] leading-snug text-[#1f2d3d]">{selected.decision}</p>
                 </>
               )}
-              <Label>Reason, in Paul&apos;s words</Label>
+              <Label>Reason, in the expert&apos;s words</Label>
               <figure className="relative rounded-md bg-indigo-soft/60 px-5 pb-4 pt-6">
                 <span className="absolute left-3 top-0 font-serif text-[54px] leading-none text-indigo/30" aria-hidden="true">“</span>
                 <blockquote className="text-[16.5px] leading-snug text-[#1f2d3d]">{selected.expertQuote}</blockquote>
                 <figcaption className="mt-3 flex items-center gap-2 text-[13px] text-[#667085]">
                   <span className="grid h-6 w-6 place-items-center rounded-full bg-[#0f766e] text-[10.5px] font-medium text-white">PA</span>
-                  Paul Adler · {selected.time}
+                  Expert · {selected.time}
                 </figcaption>
               </figure>
             </div>
@@ -163,7 +163,7 @@ export default function WorkMapView({ map, selected, onSelect, onReplay }: Props
             </div>
           )}
           {map.confirmed && (
-            <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-ok-soft px-3 py-1 text-[13.5px] text-ok">✓ Confirmed by Paul in the teach-back</p>
+            <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-ok-soft px-3 py-1 text-[13.5px] text-ok">✓ Confirmed by the expert in the teach-back</p>
           )}
         </section>
 

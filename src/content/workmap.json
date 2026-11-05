@@ -2,9 +2,9 @@
   "_how_to_edit": "This file is the ONLY source of the Work Map. Edit the text below and the Work Map page, Teaching mode, the AI-agent export and mock mode all update. No code changes needed. Keep the same keys; add or remove steps freely.",
   "page": {
     "eyebrow": "Module 2 · Review mode",
-    "headline": "What Paul taught",
+    "headline": "What the expert taught",
     "headlineAccent": "the Apprentice",
-    "expertName": "Paul",
+    "expertName": "the expert",
     "sourceNote": "Prepared Work Map · personal data redacted"
   },
   "source": {

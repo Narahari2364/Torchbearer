@@ -13,7 +13,8 @@ import type { ReviewItem, StepMastery, WorkMap } from "@/lib/types";
 import { ScreenWatcher, shareErrorText, type Frame } from "./screenWatcher";
 
 const PAUSE_MS = 2000;
-const LEARNER = "Maya Chen";
+// No sign-in yet, so every learner shares one progress record. Replace with the signed-in user (Cognito).
+const LEARNER = "New hire";
 
 export type CoachStatus = "idle" | "connecting" | "watching" | "reading" | "speaking" | "done";
 
@@ -96,7 +97,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
           time: now,
           screenshot: watcher.current.grab(640) ?? undefined,
           observed: data.action ?? "Something on this screen",
-          expected: step ? `${step.correction || step.title}${step.guardrails[0] ? `: ${step.guardrails[0]}` : ""}` : "Paul's usual way",
+          expected: step ? `${step.correction || step.title}${step.guardrails[0] ? `: ${step.guardrails[0]}` : ""}` : "The expert's usual way",
           note: data.message ?? "",
           workflowId,
           stepId: data.stepId ?? undefined,
@@ -170,7 +171,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
     setSessions((n) => n + 1);
     if (agent.connected) {
       agent.sendUserMessage(
-        `[DONE] Maya finished. Learned: ${Object.values(masteryRef.current).filter((m) => m === "learned").length} step(s); to relearn: ${Object.values(masteryRef.current).filter((m) => m === "relearn").length}; ${live.current.reviews.length} item(s) went to the supervisor for review. Close warmly in two sentences, without saying anything was wrong.`,
+        `[DONE] The new hire finished. Learned: ${Object.values(masteryRef.current).filter((m) => m === "learned").length} step(s); to relearn: ${Object.values(masteryRef.current).filter((m) => m === "relearn").length}; ${live.current.reviews.length} item(s) went to the supervisor for review. Close warmly in two sentences, without saying anything was wrong.`,
       );
       setTimeout(() => live.current.agent.endSession(), 12000);
     }
@@ -181,7 +182,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
     if (!agent.connected) return;
     agent.sendContextualUpdate(`[WORKMAP] ${JSON.stringify(map)}`);
     const again = map.steps.filter((s) => previous[s.id] === "relearn").map((s) => s.correction || s.title);
-    if (again.length) agent.sendContextualUpdate(`[PROGRESS] Last time Maya needed to relearn: ${again.join("; ")}. Give those steps a little extra guidance.`);
+    if (again.length) agent.sendContextualUpdate(`[PROGRESS] Last time the new hire needed to relearn: ${again.join("; ")}. Give those steps a little extra guidance.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent.connected]);
 

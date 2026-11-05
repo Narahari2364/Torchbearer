@@ -1,6 +1,6 @@
 "use client";
 // Module 3 · Teaching: one click launches Torchbearer into an always-on-top floating window.
-// It first asks which saved, approved workflow Maya wants to practise. She starts recording and
+// It first asks which saved, approved workflow the new hire wants to practise. They start recording and
 // works in any browser tab; matching steps are marked Learned, anything that might differ is never
 // called wrong: it's marked Relearn and goes under review for the supervisor (/review).
 
@@ -60,7 +60,7 @@ function Teach() {
   ) : c.sharing ? (
     <div className="text-[15px]">
       <div className="font-medium text-err">● Recording · {selected.name}</div>
-      <p className="mt-1 text-[14px] text-[#475467]">Switch to Maya&apos;s work. Stop recording in the floating Torchbearer when she&apos;s done.</p>
+      <p className="mt-1 text-[14px] text-[#475467]">Switch to the new hire&apos;s work. Stop recording in the floating Torchbearer when they&apos;re done.</p>
     </div>
   ) : (
     <div className="flex flex-col gap-2">
@@ -78,7 +78,7 @@ function Teach() {
       <Launcher
         eyebrow="Module 3 · Teaching"
         title={<>Torchbearer <span className="font-medium text-indigo">guides the new hire</span></>}
-        text="Launch it and it floats on Maya's screen. She picks a workflow, starts recording and works as usual. Torchbearer marks each step learned or to relearn, and anything that might differ goes to her supervisor, never called wrong."
+        text="Launch it and it floats on the new hire's screen. They pick a workflow, start recording and work as usual. Torchbearer marks each step learned or to relearn, and anything that might differ goes to their supervisor, never called wrong."
         launched={pip.isOpen}
         canPip={canPip}
         failed={pip.failed}
@@ -91,7 +91,7 @@ function Teach() {
         panel={bot}
         startArea={startArea}
         links={[{ href: "/capture", label: "← Capture" }, { href: "/map", label: "← Mapping" }, { href: "/review", label: "Supervisor review →" }]}
-        demo={{ href: "/ledgerline/index.html?user=maya", label: "Demo app: open Ledgerline as Maya" }}
+        demo={{ href: "/ledgerline/index.html?user=maya", label: "Demo app: open Ledgerline as the new hire" }}
       />
       {pip.container && createPortal(bot, pip.container)}
     </>

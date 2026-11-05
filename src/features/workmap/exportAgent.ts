@@ -13,7 +13,7 @@ export interface ExportOptions {
 
 export function toAgentMarkdown(map: WorkMap, opts: ExportOptions = { quotes: true, guardrails: true, screenMoments: false }): string {
   const lines = [
-    `# ${map.task}: rules from Paul Adler${map.confirmed ? " (confirmed in the teach-back)" : ""}`,
+    `# ${map.task}: rules from the expert${map.confirmed ? " (confirmed in the teach-back)" : ""}`,
     "",
     "Follow the steps in order. If a STOP guardrail applies, do not submit: hand the case to a person and say which rule applies.",
     "",
@@ -21,7 +21,7 @@ export function toAgentMarkdown(map: WorkMap, opts: ExportOptions = { quotes: tr
   ];
   map.steps.forEach((s) => {
     lines.push(`${s.order}. ${s.title}${s.decision ? ` (judgment call: ${s.decision})` : ""}${opts.screenMoments ? ` [screen ${s.time}]` : ""}`);
-    if (opts.quotes) lines.push(`   Paul: "${s.expertQuote}"`);
+    if (opts.quotes) lines.push(`   Expert: "${s.expertQuote}"`);
   });
   if (opts.guardrails) {
     lines.push("", "## Guardrails");
@@ -42,7 +42,7 @@ export function toAgentJson(map: WorkMap, opts: ExportOptions): string {
     ...(opts.guardrails ? { guardrails: s.guardrails.map((g) => ({ type: guardrailType(g), text: g })) } : {}),
     ...(opts.screenMoments ? { screenMoment: s.time } : {}),
   }));
-  return redact(JSON.stringify({ task: map.task, expert: "Paul Adler", confirmed: map.confirmed, steps, openQuestions: map.gaps }, null, 2));
+  return redact(JSON.stringify({ task: map.task, confirmed: map.confirmed, steps, openQuestions: map.gaps }, null, 2));
 }
 
 export function downloadText(filename: string, text: string, type = "text/markdown") {
