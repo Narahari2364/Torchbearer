@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { elapsed, resetSession } from "@/lib/events";
 import { loadMastery, loadReviews, saveMastery, saveReviews } from "@/lib/session";
-import { useVoiceAgent } from "@/lib/useVoiceAgent";
+import { requestMic, useVoiceAgent } from "@/lib/useVoiceAgent";
 import type { ReviewItem, StepMastery, WorkMap } from "@/lib/types";
 import { ScreenWatcher, shareErrorText, type Frame } from "./screenWatcher";
 
@@ -154,11 +154,21 @@ export function useCoach(map: WorkMap, workflowId: string) {
     loadReviews().then((prev) => {
       pendingReviews.current = prev && !prev.submitted ? prev.items : [];
     });
+    // Ask for screen and microphone in this same click, while this page is in front. Browsers
+    // without the floating window (Firefox, Safari) otherwise show the mic prompt only after the
+    // user has switched to their work, so it sits unanswered and the voice never starts.
+    const sharing = watcher.current.start((f) => onFrame(f), () => setSharing(false));
+    const mic = requestMic();
     try {
-      await watcher.current.start((f) => onFrame(f), () => setSharing(false));
+      await sharing;
       setSharing(true);
     } catch (e) {
       setError(shareErrorText(e));
+      return;
+    }
+    const micError = await mic;
+    if (micError) {
+      setError(micError);
       return;
     }
     agent.start();
