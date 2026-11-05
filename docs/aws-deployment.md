@@ -107,6 +107,8 @@ Use the production build to test voice. In `npm run dev`, React's development mo
 
 **Logs:** Amplify console → *Monitoring* → *Hosting compute logs* (CloudWatch).
 
+**Login troubleshooting:** after several wrong-password attempts in a short time, Amplify blocks that network with `401` / `429` errors for several minutes, even with the right password. Wait about 10 minutes and try again. When changing the site password, allow a few minutes for it to apply everywhere. Pages can also be served from cache without a login check, so test the login with an API route such as `/api/workflows`.
+
 **Test checklist after each deploy** (Chrome, one Torchbearer tab, microphone set explicitly in site settings):
 1. Capture: screen share starts; the agent greets you and you can talk to it; steps appear while you work.
 2. Stop → Map: steps with screenshots; save; reload, and it's still there.
