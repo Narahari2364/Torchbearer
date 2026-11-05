@@ -9,21 +9,33 @@ export async function geminiJson<T>(
   system: string,
   parts: Part[],
   models = TEXT_MODELS,
+  // Total time for all model attempts. Hosting platforms cut requests off (AWS Amplify at ~30 s),
+  // so give up in time to return a clean error; the client simply tries again with the next frame.
+  budgetMs = Number(process.env.GEMINI_BUDGET_MS) || 25_000,
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { ok: false, error: "GEMINI_API_KEY missing in .env.local" };
 
+  const deadline = Date.now() + budgetMs;
   let last = "";
   for (const model of models) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-      }),
-    });
+    const left = deadline - Date.now();
+    if (left < 1_000) return { ok: false, error: last || `Gemini took longer than ${budgetMs / 1000}s` };
+    let res: Response;
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+        }),
+        signal: AbortSignal.timeout(left),
+      });
+    } catch {
+      return { ok: false, error: `Gemini ${model} took longer than ${budgetMs / 1000}s` };
+    }
     if (!res.ok) {
       last = `Gemini ${model} ${res.status}: ${await res.text()}`;
       if ([404, 429, 500, 503].includes(res.status)) continue;
