@@ -5,7 +5,7 @@ Last updated: 2026-11-05.
 
 | | |
 |---|---|
-| Test link | https://aws.d32tnuo1sla34.amplifyapp.com (password protected; ask Marissa for the login) |
+| App | https://aws.d32tnuo1sla34.amplifyapp.com (Cognito sign-in, invite-only; opens on the workflow vault) |
 | AWS account / region | `744438387719` / `us-east-1` (N. Virginia, same area as the Vercel deployment) |
 | Previous hosting | Vercel, https://ai-apprentice-chi.vercel.app (kept running unchanged as the fallback) |
 
@@ -63,10 +63,14 @@ AWS Amplify Hosting ── Next.js pages + API routes (server code)
 
 **Known limitation of S3 today:** `workflows/index.json` is read, changed and written back. Two saves at the same moment can overwrite each other. Acceptable at demo scale; PostgreSQL removes it.
 
-### D3. Sign-in: shared password now, Cognito before real customer data
-**Now:** Amplify's built-in password protection on the whole site, pages and API routes. Without it, anyone with the link could read all saved workflows and spend our Gemini and ElevenLabs credits.
+### D3. Sign-in: Amazon Cognito, one company per account (done 2026-11-06)
+**Chosen:** Cognito user pool `torchbearer-users` (`us-east-1_YyfcIjRiS`, Essentials tier, managed login at `torchbearer.auth.us-east-1.amazoncognito.com`). Invite-only: nobody can sign themselves up; we invite people with `scripts/invite-user.sh`. Each account carries a company ID (`custom:org`) that users cannot change.
 
-**Before a pilot company puts in real data:** Amazon Cognito sign-in, plus a company ID on every record so one customer can never see another's data. The app records screenshots of customers' internal tools, so this is a hard requirement, not a nice-to-have.
+**How it works:** OAuth code flow with PKCE; the server swaps the code for tokens using the client secret and keeps the ID token in an httpOnly cookie for 12 hours. `src/proxy.ts` sends signed-out visitors to the sign-in page, and every API route verifies the token again (`requireUser`), including the Gemini and ElevenLabs routes, so nobody can spend our credits without signing in.
+
+**Data separation:** every stored file lives under `orgs/<company>/` in S3 (`orgDb` in `src/lib/db.ts`). The existing demo data was copied to `orgs/torchbearer-demo/`; the old top-level files are kept as a backup.
+
+**Turned down:** the Amplify site password alone (one shared password, no per-company data); Amplify's own auth library (client-side tokens, more code in the browser).
 
 ### D4. Secrets: Amplify environment variables
 API keys are set on the Amplify branch and written to `.env.production` during the build (`amplify.yml`), which is how Amplify makes them visible to server routes. They never reach the browser. Move to AWS Secrets Manager when there is more than one environment or more people with console access.
@@ -85,7 +89,8 @@ The Vercel deployment runs in Washington DC (`iad1`), so `us-east-1` keeps laten
 | Phase | AWS cost / month |
 |---|---|
 | Now (team testing + demo) | **~$3–10**: Amplify builds and server time, S3, logs |
-| Pilot (adds Aurora PostgreSQL + Cognito) | **~$20–80** |
+| Sign-in + vault + demo video | **+$0–1**: Cognito is free up to 10,000 monthly active users; the video adds $0.15 per GB served (about 1,000 plays per $0.85) |
+| Pilot (adds Aurora PostgreSQL) | **~$20–80** |
 
 AWS is not the main cost. **ElevenLabs** (per voice minute) and **Gemini** (per screenshot / call) are, and they cost the same on any host. AWS Activate Founders credits (~$1,000) would cover AWS for a long time.
 
@@ -123,5 +128,6 @@ Use the production build to test voice. In `npm run dev`, React's development mo
 | Rotate all API keys (they have been shared in chat and copied between machines) | Team | After VC demo |
 | Merge uncommitted voice start-up fixes from local work (`useObserver.ts`, `useVoiceAgent.ts`) | Marissa / Hari | Before VC demo |
 | Replace the 2023 IAM access key of user `admin`; stop using root | Marissa | This month |
-| Cognito + per-company data; Aurora PostgreSQL | Team | First pilot customer |
+| Aurora PostgreSQL | Team | First pilot customer |
+| Brand the Cognito sign-in page (logo, colours) | Marissa | Before VC demo |
 | Infrastructure as code (AWS CDK) for everything above | Team | With the pilot work |
