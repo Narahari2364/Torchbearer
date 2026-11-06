@@ -45,7 +45,8 @@ AWS Amplify Hosting ── Next.js pages + API routes
 | Voice | ElevenLabs Agents (`@elevenlabs/react`): an Interviewer for Capture, a Tutor for Teach |
 | Vision + reasoning | Gemini, called only from server routes |
 | Hosting | AWS Amplify Hosting (server-rendered), deploys on every push to `aws` |
-| Data | Amazon S3, versioned, encrypted, private |
+| Sign-in | Amazon Cognito managed login, invite-only; each account belongs to one company |
+| Data | Amazon S3, versioned, encrypted, private; each company's data under its own `orgs/<company>/` prefix |
 | Website | Static page on a second Amplify app ([torchbearer-site](https://github.com/NingchenMa/torchbearer-site)) |
 
 Why S3 and not DynamoDB, why Amplify and not ECS, what changes at the first pilot (Cognito sign-in, per-company data, Aurora PostgreSQL), and what it costs: see **[docs/aws-deployment.md](docs/aws-deployment.md)**.
@@ -63,6 +64,7 @@ Use Chrome, keep one TorchBearer tab open, and pick your microphone explicitly i
 
 | Page | What it is |
 |---|---|
+| `/vault` | The company's workflow vault: every trained workflow, train a new hire from any approved one |
 | `/capture` | Learning mode: record an expert's workflow |
 | `/map` | Review and correct the Work Map, then approve it |
 | `/teach` | Teaching mode: a new hire practises an approved workflow |
@@ -86,6 +88,6 @@ docs/               architecture decisions, agent prompts, data formats
 
 ## Status
 
-Pre-pilot. Next up: sign-in with Amazon Cognito and per-company data separation before any customer data goes in, then Aurora PostgreSQL for analytics.
+Pre-pilot. Sign-in (Amazon Cognito) and per-company data separation are in. Next up: Aurora PostgreSQL for analytics.
 
 <sub>TorchBearer started at the Hack-Nation × ElevenLabs 7th Global AI Hackathon (original repo: <a href="https://github.com/Narahari2364/Torchbearer">Narahari2364/Torchbearer</a>).</sub>

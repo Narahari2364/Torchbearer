@@ -1,4 +1,5 @@
 // Server-only database: a PRIVATE Amazon S3 bucket (S3_BUCKET, S3_REGION).
+// Each company's data lives under its own prefix, orgs/<org>/ (use orgDb(user.org) in routes).
 // Everything is a JSON document:
 //   workflows/index.json            summaries of all trained workflows
 //   workflows/<id>.json             a full workflow (steps, reasons, rules, screenshots)
@@ -42,3 +43,13 @@ export async function remove(pathname: string): Promise<void> {
 
 /** Only letters, digits, dash, underscore and space in path segments. */
 export const safe = (s: string) => s.replace(/[^\w\- ]/g, "_").slice(0, 80);
+
+/** Storage for one company: every key is placed under orgs/<org>/, so companies never see each other's data. */
+export function orgDb(org: string) {
+  const key = (p: string) => `orgs/${safe(org)}/${p}`;
+  return {
+    readJson: <T>(p: string) => readJson<T>(key(p)),
+    writeJson: (p: string, data: unknown) => writeJson(key(p), data),
+    remove: (p: string) => remove(key(p)),
+  };
+}

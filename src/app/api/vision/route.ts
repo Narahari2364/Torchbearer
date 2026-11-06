@@ -1,5 +1,6 @@
 // POST /api/vision { frame, previous? } (base64 JPEG data URLs) → { events } describing what changed.
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
 import { geminiJson, VISION_MODELS } from "@/lib/gemini";
 import { redactDeep } from "@/lib/redact";
 import type { ScreenEvent } from "@/lib/types";
@@ -17,6 +18,8 @@ const toPart = (dataUrl: string) => ({
 });
 
 export async function POST(req: Request) {
+  const u = await requireUser();
+  if (u instanceof Response) return u;
   const { frame, previous } = (await req.json()) as { frame: string; previous?: string | null };
   const parts = previous
     ? [{ text: "PREVIOUS frame:" }, toPart(previous), { text: "CURRENT frame:" }, toPart(frame)]

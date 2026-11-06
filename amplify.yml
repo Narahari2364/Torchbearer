@@ -7,7 +7,7 @@ frontend:
     build:
       commands:
         # Server routes on Amplify only see env vars that are written into .env.production at build time.
-        - env | grep -E '^(ELEVENLABS_|GEMINI_|S3_)' >> .env.production
+        - env | grep -E '^(ELEVENLABS_|GEMINI_|S3_|COGNITO_)' >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

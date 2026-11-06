@@ -3,6 +3,7 @@
 //              question about something the screenshots alone cannot explain.
 //  "integrate" (text only, fast) write the expert's spoken answers into the workflow.
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
 import { geminiJson } from "@/lib/gemini";
 import { redact, redactDeep } from "@/lib/redact";
 import type { ObservedStep, ObserveQA } from "@/lib/types";
@@ -64,6 +65,8 @@ const clean = (steps: ObservedStep[] | undefined, fallback: ObservedStep[]) =>
   (steps ?? fallback).map((s, i) => ({ ...s, id: s.id || `w${i + 1}`, why: s.why ?? null, rule: s.rule ?? null }));
 
 export async function POST(req: Request) {
+  const u = await requireUser();
+  if (u instanceof Response) return u;
   const body = (await req.json()) as Body;
   const { workflow, qa, asked, now } = body;
 

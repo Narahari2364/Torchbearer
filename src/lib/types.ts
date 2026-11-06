@@ -113,6 +113,8 @@ export interface WorkflowSummary {
   createdAt: string;
   published: boolean;
   stepCount: number;
+  /** Who recorded it (the signed-in expert's name), when known. */
+  trainedBy?: string;
 }
 
 /** The supervisor's review batch for one learner. */

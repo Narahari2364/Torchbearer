@@ -125,7 +125,7 @@ export default function MappingPage() {
         <div className="pointer-events-none absolute -right-32 -top-40 h-[440px] w-[440px] rounded-full bg-indigo/10 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-6xl px-6 pb-8 pt-6">
           <div className="mb-4 flex flex-wrap items-center gap-3 text-[13.5px]">
-            <Link href="/capture" className="text-[#667085] hover:text-indigo">← Back to Capture</Link>
+            <Link href="/vault" className="text-[#667085] hover:text-indigo">← Vault</Link>
             <span className="ml-auto text-[#667085]">Workflow</span>
             <select value={wf.id} onChange={(e) => switchTo(e.target.value)} className="h-9 max-w-xs rounded-sm border border-[#9aa0a6] bg-white px-2 text-[14px] focus:border-indigo focus:outline-none">
               {library.map((w) => (

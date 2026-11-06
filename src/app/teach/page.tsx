@@ -90,7 +90,7 @@ function Teach() {
         micError={micError}
         panel={bot}
         startArea={startArea}
-        links={[{ href: "/capture", label: "← Capture" }, { href: "/map", label: "← Mapping" }, { href: "/review", label: "Supervisor review →" }]}
+        links={[{ href: "/vault", label: "← Vault" }, { href: "/capture", label: "← Capture" }, { href: "/map", label: "← Mapping" }, { href: "/review", label: "Supervisor review →" }]}
         demo={{ href: "/ledgerline/index.html?user=maya", label: "Demo app: open Ledgerline as the new hire" }}
       />
       {pip.container && createPortal(bot, pip.container)}

@@ -1,5 +1,6 @@
 // POST /api/workmap { events, transcript } → WorkMap JSON, built by Gemini.
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
 import { geminiJson } from "@/lib/gemini";
 import { redact, redactDeep } from "@/lib/redact";
 import type { ScreenEvent, TranscriptLine, WorkMap } from "@/lib/types";
@@ -27,6 +28,8 @@ Events come from the app itself [dom] and from a vision model reading the screen
 Rules: 5–9 steps in chronological order. Every judgment call and guardrail must come from the transcript or events, never invented. Prefer generalised steps ("Attach the PL approval when over $30 per person") over one-off ones.`;
 
 export async function POST(req: Request) {
+  const u = await requireUser();
+  if (u instanceof Response) return u;
   const { events, transcript } = (await req.json()) as { events: ScreenEvent[]; transcript: TranscriptLine[] };
   const input =
     "SCREEN EVENTS:\n" +

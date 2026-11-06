@@ -43,7 +43,7 @@ export default function ReviewPage() {
     <div className="min-h-full bg-[#f6f8fc]">
       <section className="relative overflow-hidden border-b border-line bg-[linear-gradient(180deg,#f3f2ff_0%,#ffffff_100%)]">
         <div className="relative mx-auto max-w-6xl px-6 pb-8 pt-6">
-          <Link href="/teach" className="mb-4 inline-block text-[13.5px] text-[#667085] hover:text-indigo">← Back to Teaching</Link>
+          <Link href="/vault" className="mb-4 inline-block text-[13.5px] text-[#667085] hover:text-indigo">← Vault</Link>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-sm border border-indigo/30 bg-indigo-soft px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide text-indigo">Supervisor review</span>
             <span className={`rounded-full px-2.5 py-1 text-[12.5px] font-medium ${current?.submitted ? "bg-ok-soft text-ok" : "bg-warn-soft text-[#7a5a00]"}`}>

@@ -3,6 +3,7 @@
 // from the expert → goes under review for the supervisor), or "none" (nothing to say yet).
 // It never tells the new hire they are wrong.
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
 import { geminiJson } from "@/lib/gemini";
 import { redact, redactDeep } from "@/lib/redact";
 
@@ -46,6 +47,8 @@ interface Body {
 }
 
 export async function POST(req: Request) {
+  const u = await requireUser();
+  if (u instanceof Response) return u;
   const b = (await req.json()) as Body;
   const context = redact(
     `NOW: ${b.now}\n\nTHE EXPERT'S APPROVED STEPS:\n${b.steps
