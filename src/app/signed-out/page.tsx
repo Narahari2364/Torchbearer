@@ -15,6 +15,7 @@ export default async function SignedOut({ searchParams }: PageProps<"/signed-out
         <p className="mt-2 text-[15px] text-[#475467]">{typeof error === "string" ? error : "See you next time."}</p>
         <div className="mt-6 flex justify-center gap-3">
           <a href="/api/auth/login?next=/vault" className="inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">Sign in</a>
+          <a href="/api/auth/login?signup=1&next=/vault" className="btn">Create an account</a>
           <a href={WEBSITE} className="btn">TorchBearer website</a>
         </div>
       </div>

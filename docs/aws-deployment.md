@@ -64,7 +64,7 @@ AWS Amplify Hosting ── Next.js pages + API routes (server code)
 **Known limitation of S3 today:** `workflows/index.json` is read, changed and written back. Two saves at the same moment can overwrite each other. Acceptable at demo scale; PostgreSQL removes it.
 
 ### D3. Sign-in: Amazon Cognito, one company per account (done 2026-11-06)
-**Chosen:** Cognito user pool `torchbearer-users` (`us-east-1_YyfcIjRiS`, Essentials tier, managed login at `torchbearer.auth.us-east-1.amazoncognito.com`). Invite-only: nobody can sign themselves up; we invite people with `scripts/invite-user.sh`. Each account carries a company ID (`custom:org`) that users cannot change.
+**Chosen:** Cognito user pool `torchbearer-users` (`us-east-1_YyfcIjRiS`, Essentials tier, managed login at `torchbearer.auth.us-east-1.amazoncognito.com`). Anyone can sign up (email verified by a code) and gets a private workspace; we invite people into a shared company vault with `scripts/invite-user.sh`. Each account carries a company ID (`custom:org`) that users cannot change.
 
 **How it works:** OAuth code flow with PKCE; the server swaps the code for tokens using the client secret and keeps the ID token in an httpOnly cookie for 12 hours. `src/proxy.ts` sends signed-out visitors to the sign-in page, and every API route verifies the token again (`requireUser`), including the Gemini and ElevenLabs routes, so nobody can spend our credits without signing in.
 

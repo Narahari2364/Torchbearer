@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   if (!tokenRes.ok) return fail("Sign-in failed. Please try again.");
   const { id_token } = (await tokenRes.json()) as { id_token?: string };
   const user = await userFromToken(id_token);
-  if (!user) return fail("This account isn't linked to a company yet. Ask your TorchBearer contact.");
+  if (!user) return fail("Sign-in failed. Please try again.");
 
   const res = NextResponse.redirect(`${origin}${login.next}`);
   res.cookies.set(SESSION_COOKIE, id_token!, {

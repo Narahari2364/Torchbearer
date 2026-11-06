@@ -13,7 +13,8 @@ interface Me {
   org: string;
 }
 
-const companyName = (org: string) => org.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const companyName = (org: string) =>
+  org.startsWith("user-") ? "Your workspace" : org.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const day = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });

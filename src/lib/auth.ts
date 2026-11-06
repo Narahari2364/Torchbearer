@@ -2,6 +2,8 @@
 // The browser holds one httpOnly cookie: the Cognito ID token (valid 12 hours).
 // Every API route calls requireUser(), which verifies that token's signature and expiry
 // and returns the user's company ("org"). All data is stored under that company's prefix.
+// Invited users carry a company ID (custom:org, which users can't change). People who sign up on their own
+// get a private workspace keyed to their Cognito user ID, so they never see another company's data.
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -25,13 +27,15 @@ let verifier: ReturnType<typeof CognitoJwtVerifier.create<{ userPoolId: string; 
 const getVerifier = () =>
   (verifier ??= CognitoJwtVerifier.create({ userPoolId: cognito.userPoolId, tokenUse: "id", clientId: cognito.clientId }));
 
-/** The signed-in user for an ID token, or null if it is missing, forged, expired, or has no company. */
+/** Prefix of the private workspace given to people who signed up themselves. */
+export const PERSONAL_ORG_PREFIX = "user-";
+
+/** The signed-in user for an ID token, or null if it is missing, forged or expired. */
 export async function userFromToken(token: string | undefined): Promise<User | null> {
   if (!token || !cognito.userPoolId) return null;
   try {
     const p = await getVerifier().verify(token);
-    const org = typeof p["custom:org"] === "string" ? p["custom:org"] : "";
-    if (!org) return null; // every account must belong to a company
+    const org = typeof p["custom:org"] === "string" && p["custom:org"] ? p["custom:org"] : `${PERSONAL_ORG_PREFIX}${p.sub}`;
     const email = typeof p.email === "string" ? p.email : "";
     const name = typeof p.name === "string" && p.name ? p.name : email.split("@")[0];
     return { email, name, org };
