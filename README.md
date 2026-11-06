@@ -45,7 +45,7 @@ AWS Amplify Hosting ── Next.js pages + API routes
 | Voice | ElevenLabs Agents (`@elevenlabs/react`): an Interviewer for Capture, a Tutor for Teach |
 | Vision + reasoning | Gemini, called only from server routes |
 | Hosting | AWS Amplify Hosting (server-rendered), deploys on every push to `aws` |
-| Sign-in | Amazon Cognito managed login: open sign-up (private workspace per person) or invite into a company |
+| Sign-in | Amazon Cognito managed login, invite-only; each account belongs to one company |
 | Data | Amazon S3, versioned, encrypted, private; each company's data under its own `orgs/<company>/` prefix |
 | Website | Static page on a second Amplify app ([torchbearer-site](https://github.com/NingchenMa/torchbearer-site)) |
 

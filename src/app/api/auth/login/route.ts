@@ -1,4 +1,4 @@
-// GET /api/auth/login?next=/vault — sends the browser to the Cognito sign-in page (?signup=1: the sign-up page).
+// GET /api/auth/login?next=/vault — sends the browser to the Cognito sign-in page.
 // A random state (checked on return) and a PKCE verifier ride along in a short-lived cookie.
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
@@ -11,7 +11,6 @@ const b64url = (b: Buffer) => b.toString("base64url");
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const nextParam = params.get("next") ?? "/vault";
-  const page = params.get("signup") ? "signup" : "oauth2/authorize";
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/vault"; // same-site only
   const state = b64url(randomBytes(24));
   const verifier = b64url(randomBytes(32));
@@ -25,7 +24,7 @@ export async function GET(req: Request) {
     code_challenge: challenge,
     code_challenge_method: "S256",
   });
-  const res = NextResponse.redirect(`${cognito.domain}/${page}?${q}`);
+  const res = NextResponse.redirect(`${cognito.domain}/oauth2/authorize?${q}`);
   res.cookies.set("tb_login", JSON.stringify({ state, verifier, next }), {
     httpOnly: true,
     secure: !appOrigin(req).startsWith("http://"),
