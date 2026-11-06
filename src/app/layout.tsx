@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Roboto } from "next/font/google";
 import MockBadge from "@/features/mock/MockBadge";
+import AppNav from "@/features/nav/AppNav";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -21,6 +22,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${roboto.variable} h-full antialiased`}>
       <body className="flex h-full flex-col overflow-hidden font-sans">
+        <AppNav />
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
         <MockBadge />
       </body>

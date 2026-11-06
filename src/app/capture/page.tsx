@@ -64,7 +64,7 @@ function Capture() {
   return (
     <>
       <Launcher
-        eyebrow="Module 1 · Capture"
+        eyebrow="Training · Record an expert"
         title={<>Torchbearer <span className="font-medium text-indigo">watches the expert work</span></>}
         text="Launch it and it floats on your screen. Start recording, work in any browser as usual, and answer when it asks why. Stop recording and it shows you everything it observed."
         launched={pip.isOpen}
@@ -78,7 +78,7 @@ function Capture() {
         micError={micError}
         panel={bot}
         startArea={startArea}
-        links={[{ href: "/vault", label: "← Vault" }, { href: "/map", label: "Mapping →" }, { href: "/teach", label: "Teaching →" }]}
+        
         demo={{ href: "/ledgerline/index.html?user=paul", label: "Demo app: open Ledgerline as the expert" }}
       />
       {pip.container && createPortal(bot, pip.container)}

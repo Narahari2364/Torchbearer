@@ -76,7 +76,7 @@ function Teach() {
   return (
     <>
       <Launcher
-        eyebrow="Module 3 · Teaching"
+        eyebrow="Teaching · Coach a new hire"
         title={<>Torchbearer <span className="font-medium text-indigo">guides the new hire</span></>}
         text="Launch it and it floats on the new hire's screen. They pick a workflow, start recording and work as usual. Torchbearer marks each step learned or to relearn, and anything that might differ goes to their supervisor, never called wrong."
         launched={pip.isOpen}
@@ -90,7 +90,7 @@ function Teach() {
         micError={micError}
         panel={bot}
         startArea={startArea}
-        links={[{ href: "/vault", label: "← Vault" }, { href: "/capture", label: "← Capture" }, { href: "/map", label: "← Mapping" }, { href: "/review", label: "Supervisor review →" }]}
+        
         demo={{ href: "/ledgerline/index.html?user=maya", label: "Demo app: open Ledgerline as the new hire" }}
       />
       {pip.container && createPortal(bot, pip.container)}

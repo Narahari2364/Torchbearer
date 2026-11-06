@@ -5,24 +5,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BotFace } from "@/features/observe/Launcher";
 import type { WorkflowSummary } from "@/lib/types";
 
-interface Me {
-  email: string;
-  name: string;
-  org: string;
-}
-
-const companyName = (org: string) =>
-  org.startsWith("user-") ? "Your workspace" : org.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const day = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 };
 
 export default function VaultPage() {
-  const [me, setMe] = useState<Me | null>(null);
   const [list, setList] = useState<WorkflowSummary[] | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "approved" | "draft">("all");
@@ -46,10 +36,6 @@ export default function VaultPage() {
   };
 
   useEffect(() => {
-    fetch("/api/auth/me", { cache: "no-store" }).then(async (r) => {
-      if (r.status === 401) window.location.href = "/api/auth/login?next=/vault";
-      else if (r.ok) setMe(await r.json());
-    });
     fetch("/api/workflows", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
       .then((l: WorkflowSummary[]) => setList(l))
@@ -67,19 +53,6 @@ export default function VaultPage() {
 
   return (
     <div className="min-h-full bg-[linear-gradient(180deg,#f3f2ff_0%,#ffffff_45%)]">
-      <header className="border-b border-line bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
-          <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-indigo">
-            <BotFace size={26} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-medium text-[#1f2d3d]">TorchBearer</div>
-            {me && <div className="truncate text-[13px] text-[#667085]">{companyName(me.org)}</div>}
-          </div>
-          {me && <span className="hidden truncate text-[13.5px] text-[#475467] sm:inline">{me.email}</span>}
-          <a href="/api/auth/logout" className="text-[13.5px] text-[#667085] hover:text-indigo">Sign out</a>
-        </div>
-      </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -104,7 +77,7 @@ export default function VaultPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by workflow or expert"
             aria-label="Search workflows"
-            className="h-10 min-w-0 flex-1 rounded-sm border border-line bg-white px-3 text-[15px] outline-none focus:border-indigo sm:max-w-sm"
+            className="h-10 w-full min-w-0 rounded-sm border border-line bg-white px-3 text-[15px] outline-none focus:border-indigo sm:w-auto sm:max-w-sm sm:flex-1"
           />
           <div className="flex rounded-sm border border-line bg-white text-[14px]" role="group" aria-label="Filter">
             {(["all", "approved", "draft"] as const).map((f) => (
