@@ -64,7 +64,7 @@ function Capture() {
   return (
     <>
       <Launcher
-        eyebrow="Training · Record an expert"
+        eyebrow="Teaching · An expert teaches TorchBearer"
         title={<>Torchbearer <span className="font-medium text-indigo">watches the expert work</span></>}
         text="Launch it and it floats on your screen. Start recording, work in any browser as usual, and answer when it asks why. Stop recording and it shows you everything it observed."
         launched={pip.isOpen}

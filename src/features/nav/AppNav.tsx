@@ -13,9 +13,9 @@ interface Me {
 }
 
 const TABS = [
-  { href: "/capture", label: "Training", hint: "Record an expert", match: ["/capture"] },
-  { href: "/vault", label: "Workflows", hint: "Review and approve", match: ["/vault", "/map", "/review"] },
-  { href: "/teach", label: "Teaching", hint: "Coach a new hire", match: ["/teach"] },
+  { href: "/capture", label: "Teaching", hint: "An expert teaches", match: ["/capture"] },
+  { href: "/vault", label: "Workflows", hint: "View and approve", match: ["/vault", "/map", "/review"] },
+  { href: "/teach", label: "Training", hint: "A new hire trains", match: ["/teach"] },
 ];
 
 /** Pages without the bar: the public signed-out page. */

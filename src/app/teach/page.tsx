@@ -12,7 +12,7 @@ import Launcher from "@/features/observe/Launcher";
 import { useCoach } from "@/features/observe/useCoach";
 import { pipSupported, usePip } from "@/features/observe/usePip";
 import { requestMic } from "@/lib/useVoiceAgent";
-import { exampleSummary, exampleWorkflow, getWorkflow, listWorkflows } from "@/lib/session";
+import { EXAMPLE_ID, exampleSummary, exampleWorkflow, getWorkflow, listWorkflows } from "@/lib/session";
 import type { WorkflowRecord, WorkflowSummary } from "@/lib/types";
 
 const readId = () => {
@@ -38,8 +38,14 @@ function Teach() {
   useEffect(() => {
     listWorkflows().then((list) => setWorkflows([...list, exampleSummary()]));
   }, []);
-  const [picked, setPicked] = useState<string | null | undefined>(undefined); // undefined = use ?id
+  const [picked, setPickedState] = useState<string | null | undefined>(undefined); // undefined = use ?id
   const selectedId = picked === undefined ? idParam : picked;
+  const setPicked = (id: string | null) => {
+    setPickedState(id);
+    try {
+      window.history.replaceState(null, "", id ? `/teach?id=${encodeURIComponent(id)}` : "/teach");
+    } catch {}
+  };
   const [selectedRaw, setSelectedRaw] = useState<WorkflowRecord | null>(null);
   useEffect(() => {
     let live = true;
@@ -55,8 +61,11 @@ function Teach() {
   const [micError, setMicError] = useState<string | null>(null);
   const canPip = useSyncExternalStore(() => () => {}, pipSupported, () => true);
   const bot = <CoachPanel c={c} workflows={workflows} selected={selected} onSelect={setPicked} />;
+  const notReady = selectedRaw && selectedRaw.id === selectedId && !selectedRaw.map.published;
   const startArea = !selected ? (
-    <p className="text-[15px] text-[#475467]">First pick a workflow in the floating Torchbearer.</p>
+    <p className="text-[15px] text-[#475467]">
+      {notReady ? "This workflow isn't approved yet. Approve it in Workflows first." : "Loading the workflow…"}
+    </p>
   ) : c.sharing ? (
     <div className="text-[15px]">
       <div className="font-medium text-err">● Recording · {selected.name}</div>
@@ -73,12 +82,20 @@ function Teach() {
     </div>
   );
 
+  // Training always starts from an approved workflow: without one, show the list to pick from.
+  if (!selectedId) return <WorkflowPicker workflows={workflows} onPick={setPicked} />;
+
   return (
     <>
+      <div className="bg-[#f3f2ff]">
+        <div className="mx-auto max-w-3xl px-6 pt-4 text-[13.5px]">
+          <button onClick={() => setPicked(null)} className="text-[#667085] hover:text-indigo">← Choose a different workflow</button>
+        </div>
+      </div>
       <Launcher
-        eyebrow="Teaching · Coach a new hire"
+        eyebrow={selected ? `Training · ${selected.name}` : "Training"}
         title={<>Torchbearer <span className="font-medium text-indigo">guides the new hire</span></>}
-        text="Launch it and it floats on the new hire's screen. They pick a workflow, start recording and work as usual. Torchbearer marks each step learned or to relearn, and anything that might differ goes to their supervisor, never called wrong."
+        text="Launch it and it floats on the new hire's screen. They start and work as usual. Torchbearer marks each step learned or to relearn, and anything that might differ goes to their supervisor, never called wrong."
         launched={pip.isOpen}
         canPip={canPip}
         failed={pip.failed}
@@ -95,5 +112,43 @@ function Teach() {
       />
       {pip.container && createPortal(bot, pip.container)}
     </>
+  );
+}
+
+/** The Training tab's first screen: approved workflows only, newest first. */
+function WorkflowPicker({ workflows, onPick }: { workflows: WorkflowSummary[]; onPick: (id: string) => void }) {
+  const approved = workflows.filter((w) => w.published && w.id !== EXAMPLE_ID).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  return (
+    <div className="min-h-full bg-[linear-gradient(180deg,#f3f2ff_0%,#ffffff_45%)]">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <h1 className="text-[30px] font-light tracking-tight text-[#1f2d3d]">Training</h1>
+        <p className="mt-1 text-[15px] text-[#475467]">Pick an approved workflow to train a new hire on. TorchBearer coaches them the way your expert does it.</p>
+        {approved.length === 0 ? (
+          <div className="mt-8 rounded-md border border-dashed border-[#c9c6f5] bg-white p-8 text-center">
+            <h2 className="text-[18px] font-medium text-[#1f2d3d]">No approved workflows yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-[15px] text-[#475467]">An expert records a workflow in Teaching, then someone approves it in Workflows. It shows up here once it&apos;s approved.</p>
+            <a href="/vault" className="mt-5 inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">Go to Workflows</a>
+          </div>
+        ) : (
+          <ul className="mt-6 grid gap-3 md:grid-cols-2">
+            {approved.map((w) => (
+              <li key={w.id} className="flex flex-col rounded-md border border-line bg-white p-4 shadow-[0_4px_14px_rgba(16,24,40,.04)]">
+                <h2 className="text-[16.5px] font-medium leading-snug text-[#1f2d3d]">{w.name || "Untitled workflow"}</h2>
+                <p className="mt-1 text-[13.5px] text-[#667085]">
+                  {w.stepCount} step{w.stepCount === 1 ? "" : "s"}
+                  {w.trainedBy ? ` · taught by ${w.trainedBy}` : ""}
+                </p>
+                <button
+                  onClick={() => onPick(w.id)}
+                  className="mt-4 inline-flex h-9 w-fit items-center rounded-sm bg-indigo px-3 text-[14px] text-white hover:bg-indigo-dark"
+                >
+                  Start training
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
