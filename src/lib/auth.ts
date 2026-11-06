@@ -10,6 +10,9 @@ import { NextResponse } from "next/server";
 
 export const SESSION_COOKIE = "tb_session";
 
+/** One short-lived cookie per sign-in attempt, named after its state, so parallel attempts never overwrite each other. */
+export const loginCookie = (state: string) => `tb_login_${state.slice(0, 16)}`;
+
 export const cognito = {
   userPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
   clientId: process.env.COGNITO_CLIENT_ID ?? "",

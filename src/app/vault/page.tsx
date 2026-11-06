@@ -1,6 +1,7 @@
 "use client";
 // The company's workflow vault: every workflow its experts have taught TorchBearer.
 // Approved workflows can train a new hire right away; drafts go to the Work Map for approval.
+// Any workflow can be deleted (asks once, inline).
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +26,24 @@ export default function VaultPage() {
   const [list, setList] = useState<WorkflowSummary[] | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "approved" | "draft">("all");
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const remove = async (id: string) => {
+    setDeleting(id);
+    setDeleteError(null);
+    try {
+      const r = await fetch(`/api/workflows/${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!r.ok) throw new Error();
+      setList((l) => (l ?? []).filter((w) => w.id !== id));
+      setConfirming(null);
+    } catch {
+      setDeleteError("Couldn't delete it. Please try again.");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" }).then(async (r) => {
@@ -72,8 +91,8 @@ export default function VaultPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/review" className="btn">Supervisor review</Link>
-            <Link href="/capture" className="inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">
+            <Link prefetch={false} href="/review" className="btn">Supervisor review</Link>
+            <Link prefetch={false} href="/capture" className="inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">
               ● Record a new workflow
             </Link>
           </div>
@@ -110,7 +129,7 @@ export default function VaultPage() {
               Ask an experienced colleague to record a task they know well. TorchBearer watches, asks why at the pauses, and turns it into a
               Work Map you can teach from.
             </p>
-            <Link href="/capture" className="mt-5 inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">
+            <Link prefetch={false} href="/capture" className="mt-5 inline-flex h-10 items-center rounded-sm bg-indigo px-4 text-[15px] text-white hover:bg-indigo-dark">
               Record the first workflow
             </Link>
           </div>
@@ -133,22 +152,51 @@ export default function VaultPage() {
                   {w.trainedBy ? ` · taught by ${w.trainedBy}` : ""}
                   {day(w.createdAt) ? ` · ${day(w.createdAt)}` : ""}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
+                {confirming === w.id ? (
+                  <div className="mt-4 rounded-sm border border-[#f3c2c2] bg-err-soft px-3 py-2.5" role="alert">
+                    <p className="text-[14px] text-[#8E1B1B]">Delete &ldquo;{w.name || "Untitled workflow"}&rdquo;? This can&apos;t be undone.</p>
+                    {deleteError && <p className="mt-1 text-[13px] text-[#8E1B1B]">{deleteError}</p>}
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => remove(w.id)}
+                        disabled={deleting === w.id}
+                        className="inline-flex h-9 items-center rounded-sm bg-err px-3 text-[14px] text-white hover:opacity-90 disabled:opacity-60"
+                      >
+                        {deleting === w.id ? "Deleting…" : "Delete"}
+                      </button>
+                      <button
+                        onClick={() => { setConfirming(null); setDeleteError(null); }}
+                        className="inline-flex h-9 items-center rounded-sm border border-line bg-white px-3 text-[14px] text-[#344054] hover:bg-panel"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {w.published ? (
                     <>
-                      <Link href={`/teach?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm bg-indigo px-3 text-[14px] text-white hover:bg-indigo-dark">
+                      <Link prefetch={false} href={`/teach?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm bg-indigo px-3 text-[14px] text-white hover:bg-indigo-dark">
                         Train a new hire
                       </Link>
-                      <Link href={`/map?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm border border-line px-3 text-[14px] text-[#344054] hover:bg-panel">
+                      <Link prefetch={false} href={`/map?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm border border-line px-3 text-[14px] text-[#344054] hover:bg-panel">
                         View Work Map
                       </Link>
                     </>
                   ) : (
-                    <Link href={`/map?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm border border-indigo px-3 text-[14px] text-indigo hover:bg-indigo-soft">
+                    <Link prefetch={false} href={`/map?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm border border-indigo px-3 text-[14px] text-indigo hover:bg-indigo-soft">
                       Review and approve
                     </Link>
                   )}
+                  <button
+                    onClick={() => { setConfirming(w.id); setDeleteError(null); }}
+                    className="ml-auto inline-flex h-9 items-center rounded-sm px-2 text-[14px] text-[#667085] hover:bg-err-soft hover:text-err"
+                    aria-label={`Delete ${w.name || "workflow"}`}
+                  >
+                    Delete
+                  </button>
                 </div>
+                )}
               </li>
             ))}
           </ul>

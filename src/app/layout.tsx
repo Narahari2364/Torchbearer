@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Roboto } from "next/font/google";
 import MockBadge from "@/features/mock/MockBadge";
 import "./globals.css";
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
   description: "Capture, map and teach expert judgment with a voice agent.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Render every page per request so the sign-in check (src/proxy.ts) always runs before a page is served.
+  await connection();
   return (
     <html lang="en" className={`${roboto.variable} h-full antialiased`}>
       <body className="flex h-full flex-col overflow-hidden font-sans">

@@ -2,7 +2,7 @@
 // A random state (checked on return) and a PKCE verifier ride along in a short-lived cookie.
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { appOrigin, cognito } from "@/lib/auth";
+import { appOrigin, cognito, loginCookie } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     code_challenge_method: "S256",
   });
   const res = NextResponse.redirect(`${cognito.domain}/oauth2/authorize?${q}`);
-  res.cookies.set("tb_login", JSON.stringify({ state, verifier, next }), {
+  res.cookies.set(loginCookie(state), JSON.stringify({ state, verifier, next }), {
     httpOnly: true,
     secure: !appOrigin(req).startsWith("http://"),
     sameSite: "lax",

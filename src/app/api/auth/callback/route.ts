@@ -3,7 +3,7 @@
 // and stores it in an httpOnly session cookie.
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { appOrigin, cognito, SESSION_COOKIE, userFromToken } from "@/lib/auth";
+import { appOrigin, cognito, loginCookie, SESSION_COOKIE, userFromToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +13,13 @@ export async function GET(req: Request) {
   const fail = (why: string) => NextResponse.redirect(`${origin}/signed-out?error=${encodeURIComponent(why)}`);
 
   const jar = await cookies();
+  const state = url.searchParams.get("state") ?? "";
   let login: { state: string; verifier: string; next: string } | null = null;
   try {
-    login = JSON.parse(jar.get("tb_login")?.value ?? "null");
+    login = state ? JSON.parse(jar.get(loginCookie(state))?.value ?? "null") : null;
   } catch {}
   const code = url.searchParams.get("code");
-  if (!login || !code || url.searchParams.get("state") !== login.state) return fail("Sign-in expired. Please try again.");
+  if (!login || !code || state !== login.state) return fail("Sign-in expired. Please try again.");
 
   const tokenRes = await fetch(`${cognito.domain}/oauth2/token`, {
     method: "POST",
@@ -47,6 +48,6 @@ export async function GET(req: Request) {
     path: "/",
     maxAge: 12 * 60 * 60,
   });
-  res.cookies.set("tb_login", "", { path: "/api/auth", maxAge: 0 });
+  res.cookies.set(loginCookie(state), "", { path: "/api/auth", maxAge: 0 });
   return res;
 }
