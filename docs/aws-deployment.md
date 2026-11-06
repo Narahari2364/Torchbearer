@@ -68,7 +68,7 @@ AWS Amplify Hosting ── Next.js pages + API routes (server code)
 
 **How it works:** OAuth code flow with PKCE; the server swaps the code for tokens using the client secret and keeps the ID token in an httpOnly cookie for 12 hours. `src/proxy.ts` sends signed-out visitors to the sign-in page, and every API route verifies the token again (`requireUser`), including the Gemini and ElevenLabs routes, so nobody can spend our credits without signing in.
 
-**Data separation:** every stored file lives under `orgs/<company>/` in S3 (`orgDb` in `src/lib/db.ts`). The existing demo data was copied to `orgs/torchbearer-demo/`; the old top-level files are kept as a backup.
+**Data separation:** every stored file lives under `orgs/<company>/` in S3 (`orgDb` in `src/lib/db.ts`). Our own team's workspace is `orgs/torchbearer/`; the old top-level files and `orgs/torchbearer-demo/` are kept as backups.
 
 **Turned down:** the Amplify site password alone (one shared password, no per-company data); Amplify's own auth library (client-side tokens, more code in the browser).
 

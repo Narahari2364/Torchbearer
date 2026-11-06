@@ -47,7 +47,9 @@ export default function AppNav() {
           </span>
           <span className="hidden leading-tight md:block">
             <span className="block text-[15px] font-medium text-[#1f2d3d]">TorchBearer</span>
-            {me && <span className="block max-w-[160px] truncate text-[12px] text-[#667085]">{companyName(me.org)}</span>}
+            {me && me.org !== "torchbearer" && (
+              <span className="block max-w-[160px] truncate text-[12px] text-[#667085]">{companyName(me.org)}</span>
+            )}
           </span>
         </Link>
 

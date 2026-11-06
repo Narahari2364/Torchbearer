@@ -1,7 +1,7 @@
 #!/bin/bash
 # Invite someone to TorchBearer. Cognito emails them a temporary password; they set their own at first sign-in.
 # Usage: scripts/invite-user.sh <email> "<Full Name>" <company-id>
-#   company-id = the folder their data lives in (orgs/<company-id>/ in S3), e.g. acme-foods. New id = new, empty company.
+#   company-id = the folder their data lives in (orgs/<company-id>/ in S3), e.g. acme-foods. New id = new, empty company. Our own team: torchbearer.
 set -euo pipefail
 [ $# -eq 3 ] || { echo "Usage: $0 <email> \"<Full Name>\" <company-id>"; exit 1; }
 EMAIL=$1; NAME=$2; ORG=$3
