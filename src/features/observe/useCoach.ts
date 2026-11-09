@@ -10,6 +10,7 @@ import { elapsed, resetSession } from "@/lib/events";
 import { loadMastery, loadReviews, saveMastery, saveReviews } from "@/lib/session";
 import { requestMic, useVoiceAgent } from "@/lib/useVoiceAgent";
 import type { ReviewItem, StepMastery, WorkMap } from "@/lib/types";
+import { workMapText } from "@/lib/workmapText";
 import { ScreenWatcher, friendly, shareErrorText, type Frame } from "./screenWatcher";
 
 const PAUSE_MS = 2000;
@@ -50,7 +51,9 @@ export function useCoach(map: WorkMap, workflowId: string) {
   const inFlight = useRef(false);
   const missed = useRef(false); // the screen changed while a call was running
   const actions = useRef<{ time: string; text: string }[]>([]);
-  const toSay = useRef<string | null>(null);
+  // The one thing waiting to be said. A correction is never pushed out by a later "looks right",
+  // and a tip that waited too long is dropped instead of being spoken about a screen long gone.
+  const toSay = useRef<{ text: string; verdict: "match" | "different"; at: number } | null>(null);
   const lastNudge = useRef(0);
   const idleAsked = useRef(0); // when we last checked in on a silent stop // last time the tutor spoke up on its own
   const recent = useRef<string[]>([]);
@@ -95,7 +98,11 @@ export function useCoach(map: WorkMap, workflowId: string) {
       if (!res.ok) throw new Error(data.error);
       lastSent.current = f.dataUrl;
       setError(null);
-      if (data.action) actions.current = [...actions.current, { time: now, text: data.action }];
+      if (data.action) {
+        actions.current = [...actions.current, { time: now, text: data.action }];
+        // The voice tutor must know what the new hire is doing to answer their questions.
+        if (l.agent.connected) l.agent.sendContextualUpdate(`[SCREEN] ${now} ${data.action}`);
+      }
       if (data.verdict === "match" && data.stepId) {
         if (!l.done.includes(data.stepId)) setDone((d) => [...d, data.stepId]);
         mark(data.stepId, "learned");
@@ -120,7 +127,8 @@ export function useCoach(map: WorkMap, workflowId: string) {
       }
       if (data.message && (data.verdict === "match" || data.verdict === "different")) {
         setMessage({ text: data.message, verdict: data.verdict, time: now });
-        toSay.current = data.message;
+        const pending = toSay.current;
+        if (!(pending?.verdict === "different" && data.verdict === "match")) toSay.current = { text: data.message, verdict: data.verdict, at: Date.now() };
         recent.current = [...recent.current, data.message].slice(-4);
       }
     } catch (e) {
@@ -137,11 +145,15 @@ export function useCoach(map: WorkMap, workflowId: string) {
     if (!agent.connected) return;
     const t = setInterval(() => {
       const a = live.current.agent;
-      const text = toSay.current;
-      if (!text || a.isSpeaking) return;
+      const tip = toSay.current;
+      if (!tip || a.isSpeaking) return;
+      if (Date.now() - tip.at > (tip.verdict === "different" ? 60_000 : 20_000)) {
+        toSay.current = null;
+        return;
+      }
       if (Date.now() - watcher.current.lastChange < PAUSE_MS) return;
       if (Date.now() - a.lastUserSpeech.current < 2000) return;
-      a.sendUserMessage(`[GUIDE] ${text}`);
+      a.sendUserMessage(`[GUIDE] ${tip.text}`);
       toSay.current = null;
       lastNudge.current = Date.now();
     }, 800);
@@ -220,7 +232,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
   // Give the agent the Work Map once connected.
   useEffect(() => {
     if (!agent.connected) return;
-    agent.sendContextualUpdate(`[WORKMAP] ${JSON.stringify(map)}`);
+    agent.sendContextualUpdate(`[WORKMAP] ${workMapText(map)}`);
     const again = map.steps.filter((s) => previous[s.id] === "relearn").map((s) => s.correction || s.title);
     if (again.length) agent.sendContextualUpdate(`[PROGRESS] Last time the new hire needed to relearn: ${again.join("; ")}. Give those steps a little extra guidance.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps

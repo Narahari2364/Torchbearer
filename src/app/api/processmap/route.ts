@@ -14,14 +14,14 @@ export const dynamic = "force-dynamic";
 // Full models first: the light ones tend to link every step to the one before. A light one is
 // still the last resort, since Gemini is often overloaded and a rough map beats none.
 const MODELS = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"];
-const MAX_SHOTS = 12; // keeps the request inside the hosting time limit
+const MAX_SHOTS = 6; // more images made Gemini too slow for the hosting time limit (~30 s)
 
 const PROCESS = `You turn a recorded work process into a process map that a new hire and a manager can read.
 You get the expert's STEPS in order (title, what was seen on screen, the expert's reason, their rules) and, for some steps, the screenshot taken at that step.
 
 For EVERY step return:
 - tool: the app, system, site or document the step happens in, as specific as the screen shows (e.g. "Ledgerline · expense form", "Outlook", "Supplier portal"). Use the same name for the same tool across steps.
-- inputs: the data or documents the step needs, each with where it comes from: an earlier step by its number ("step 2"), never its [id], a person or team ("from the supervisor"), a system ("from the travel booking"), or "unknown". Only real information or documents (e.g. "receipt", "project number", "supervisor approval"), not every field on screen, and NEVER the fact that an earlier step was done ("form opened", "details filled" are not inputs). Name documents by their kind, never by file name or number.
+- inputs: the data or documents the step needs, each with where it comes from: an earlier step by its number ("step 2"), never its [id], a person or team ("from the supervisor"), a system ("from the travel booking"), or "unknown". Only real information or documents (e.g. "receipt", "project number", "supervisor approval"), not every field on screen, and NEVER the fact that an earlier step was done ("form opened", "details filled" are not inputs). Name documents by their kind only ("receipt", "approval email"), never with a shop, restaurant, platform, person or file name ("receipt", not "Bitebox receipt").
 - outputs: what the step produces or changes (a saved form, an attached document, an approval, a status).
 - feedsInto: ids of LATER steps that use this step's outputs. [] if none.
 - decision: the judgment call made in this step and the reason, from the expert's reason/rules. "" for routine steps. Never invent a reason.

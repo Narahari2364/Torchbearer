@@ -180,8 +180,8 @@ export default function ProcessMapPage() {
         <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[.12em] text-[#667085]">Timeline{built ? " by tool" : ""}</h2>
         <div className="mb-8 rounded-md border border-line bg-white p-4">
           {(built ? tools : ["All steps"]).map((tool) => (
-            <div key={tool} className="mb-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <div className="truncate text-[13px] text-[#344054]" title={tool}>{tool}</div>
+            <div key={tool} className="mb-3 grid grid-cols-1 gap-1 sm:mb-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center sm:gap-3">
+              <div className="text-[13px] text-[#344054] sm:truncate" title={tool}>{tool}</div>
               <div className="relative h-7 rounded-sm bg-[#f2f4f7]">
                 {timed
                   .filter((t) => !built || t.step.process?.tool === tool)
@@ -189,21 +189,22 @@ export default function ProcessMapPage() {
                     <div
                       key={t.step.id}
                       title={`Step ${t.index + 1}: ${t.step.title} · ${fmt(t.duration)}`}
-                      className="absolute top-0 grid h-7 place-items-center overflow-hidden rounded-sm text-[11px] font-bold text-white"
+                      className="absolute top-0 grid h-7 w-[max(6px,var(--w))] place-items-center overflow-hidden rounded-sm text-[11px] font-bold text-white sm:w-[max(18px,var(--w))]"
                       style={{
                         left: `${(t.start / span) * 100}%`,
-                        width: `max(18px, ${((t.duration ?? span / Math.max(4, timed.length * 2)) / span) * 100}%)`,
+                        ["--w" as string]: `${((t.duration ?? span / Math.max(4, timed.length * 2)) / span) * 100}%`,
                         background: built ? color(tool) : "#5146d9",
                         opacity: t.duration == null ? 0.55 : 1,
                       }}
                     >
-                      {t.index + 1}
+                      {/* On a phone the bars are too narrow for numbers; the step list below has them. */}
+                      <span className="hidden sm:inline">{t.index + 1}</span>
                     </div>
                   ))}
               </div>
             </div>
           ))}
-          <div className="mt-1 flex justify-between pl-[108px] text-[11.5px] text-[#98a2b3] sm:pl-[192px]">
+          <div className="mt-1 flex justify-between text-[11.5px] text-[#98a2b3] sm:pl-[192px]">
             <span>0:00</span>
             <span>{fmt(span)}</span>
           </div>

@@ -66,8 +66,27 @@ interface Body {
   now: string;
 }
 
-const clean = (steps: ObservedStep[] | undefined, fallback: ObservedStep[]) =>
-  (steps ?? fallback).map((s, i) => ({ ...s, id: s.id || `w${i + 1}`, why: s.why ?? null, rule: s.rule ?? null }));
+// The model rewrites the whole workflow on every frame and sometimes leaves steps (or their
+// why/rule) out. Never lose what was already recorded: keep every earlier step in place, take the
+// model's update of it, keep an earlier why/rule it dropped, and add only genuinely new steps.
+function clean(steps: ObservedStep[] | undefined, prev: ObservedStep[]): ObservedStep[] {
+  const next = Array.isArray(steps) ? steps.filter((s) => s && typeof s.title === "string") : [];
+  const byId = new Map(next.filter((s) => s.id).map((s) => [s.id, s]));
+  const kept = prev.map((p) => {
+    const n = byId.get(p.id);
+    return n ? { ...p, ...n, id: p.id, why: n.why ?? p.why ?? null, rule: n.rule ?? p.rule ?? null } : p;
+  });
+  const ids = new Set(kept.map((s) => s.id));
+  let k = kept.length;
+  for (const s of next) {
+    if (s.id && ids.has(s.id)) continue;
+    let id = s.id || `w${++k}`;
+    while (ids.has(id)) id = `w${++k}`;
+    ids.add(id);
+    kept.push({ ...s, id, why: s.why ?? null, rule: s.rule ?? null });
+  }
+  return kept;
+}
 
 export async function POST(req: Request) {
   const u = await requireUser();

@@ -4,6 +4,7 @@
 // is held, the tutor's hint question plus a replay card of the expert's moment (I'll fix it)
 // → "Practice complete" session report.
 
+import { workMapText } from "@/lib/workmapText";
 import { useEffect, useRef, useState } from "react";
 import { ConversationProvider } from "@elevenlabs/react";
 import { onActivity, resetSession, subscribe } from "@/lib/events";
@@ -89,7 +90,7 @@ function Tutor({ stage, setStage, violations, progress, onReset }: Props) {
 
   useEffect(() => {
     if (!agent.connected) return;
-    agentRef.current.sendContextualUpdate(`[WORKMAP] ${JSON.stringify(loadTeachingMap())}`);
+    agentRef.current.sendContextualUpdate(`[WORKMAP] ${workMapText(loadTeachingMap())}`);
     return subscribe((e) => {
       if (e.type === "save_blocked") {
         setHeld(true);
