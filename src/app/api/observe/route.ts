@@ -17,7 +17,7 @@ const OBSERVE = `You are an apprentice watching an expert do a task on their scr
 Your job: write down the expert's workflow as it happens, and notice what the screenshots alone cannot explain.
 Ignore the browser's own bars and any small floating "Torchbearer" window; look only at the app the expert works in.
 
-You get the PREVIOUS screenshot (if any), the CURRENT screenshot, the ACTION LOG (what the expert did so far), the WORKFLOW so far, and the QUESTIONS already asked.
+You get the PREVIOUS screenshot (if any), the CURRENT screenshot, the ACTION LOG (what the expert did so far), the WORKFLOW so far, the questions ALREADY ASKED, and the ANSWERS SO FAR.
 
 Return JSON only:
 {
@@ -26,16 +26,21 @@ Return JSON only:
   "question": string | null
 }
 
-action: one sentence on what the expert did between PREVIOUS and CURRENT, with the specifics a colleague would need: which record or item, key values, and the NAMES of any documents attached or removed (e.g. "Saved a 40.00 meal expense at Brauhaus Kesselmann with two attachments: the receipt and an approval screenshot"). null if nothing meaningful changed (scrolling, mouse moves, typing in progress).
+action: one sentence on what the expert did between PREVIOUS and CURRENT, with the specifics a colleague would need: which record or item, key values, and the NAMES of any documents attached or removed (e.g. "Saved record 4471 with two attachments: the receipt and an approval screenshot"). null if nothing meaningful changed (scrolling, mouse moves, typing in progress).
 
-workflow: the FULL workflow so far, in order. Keep every existing step, its id, why and rule. Add a step only for a new meaningful kind of action; when the expert repeats an earlier kind of action differently, add a step for the difference (e.g. "Attach the supervisor's approval for this one"). Use NOW as time for new steps. Leave why and rule as they are; never invent them.
+workflow: the FULL workflow so far, in order. Keep every existing step, its id, why and rule. Add a step only for a new meaningful kind of action; when the expert repeats an earlier kind of action differently, add a step for the difference (e.g. "Attach the extra approval for this one"). Use NOW as time for new steps. Leave why and rule as they are; never invent them.
 
-question: this is what makes you an apprentice, not a recorder. Compare the CURRENT action with the ACTION LOG.
-- Best question: the expert handled a similar thing differently than before in the ACTION LOG (an extra or missing attachment, a different choice for a similar item). Ask what the difference is for.
-- On the first time you see a kind of action, ask only if a choice looks unusual or like a rule, limit or exception. Routine form-filling (entering amounts, names, dates) is not worth a question.
-- Never ask about what the screen already shows. Never repeat an asked question.
-- At most 15 words, friendly, about what just happened, e.g. "You added a screenshot to this one but not the first. What's it for?"
-- Otherwise null.
+question: this is what makes you an apprentice, not a recorder. Ask when a new hire watching could NOT work out something important from the screen alone. Pointed, specific to what just happened, one thing at a time. Aim for at least three good questions over a task (count ALREADY ASKED); once you have them, ask only when something is clearly worth it.
+Worth asking (best first):
+- The decision: why they chose this option, value or document, and what would make them choose differently. If they handled a similar thing differently than before in the ACTION LOG (an extra or missing attachment, a different choice), ask what the difference is for.
+- The input: what information or document this step needs and where it comes from, e.g. "Where does that project number come from?" or "What do you check before entering that?"
+- What it feeds: how this step affects later steps or other people, e.g. "What happens with this approval later?" or "Who uses this field after you submit?"
+- A hidden rule or stop condition: a limit, threshold, exception or approval that decides it, or when they would stop and ask someone.
+- A gap in an earlier answer: an answer in ANSWERS SO FAR was vague ("it depends", "usually"). Ask what it depends on.
+Not worth asking: how the software works or how they moved around it (which menu, button, gallery or screen they used, whether a field fills itself in, whether they always use a feature: that's the tool, not their judgment), routine form-filling (amounts, names, dates), anything the screen already shows, anything already answered, anything you could guess from common sense. Never repeat an asked question or ask two things at once.
+At most 15 words, friendly, about what just happened, e.g. "You added a screenshot to this one but not the first. What's it for?"
+If you can't tell what the expert just did, don't guess: action null, question null.
+Screenshots can be several seconds apart, so steps may have happened in between that you did not see (for example a gallery or dialog that opened and closed). Never assume a step was skipped or done another way just because you didn't see it, and never ask about it.
 
 Never include personal data (emails, phone, card or bank numbers).`;
 
@@ -78,7 +83,7 @@ export async function POST(req: Request) {
   }
 
   const context = redact(
-    `NOW: ${now}\n\nACTION LOG:\n${(body.actions ?? []).map((a) => `${a.time} ${a.text}`).join("\n") || "(nothing yet)"}\n\nWORKFLOW SO FAR:\n${JSON.stringify(workflow)}\n\nALREADY ASKED (do not repeat):\n${asked.join("\n") || "(none)"}`,
+    `NOW: ${now}\n\nACTION LOG:\n${(body.actions ?? []).map((a) => `${a.time} ${a.text}`).join("\n") || "(nothing yet)"}\n\nWORKFLOW SO FAR:\n${JSON.stringify(workflow)}\n\nALREADY ASKED (do not repeat):\n${asked.join("\n") || "(none)"}\n\nANSWERS SO FAR:\n${qa.map((x) => `Q: ${x.q}\nA: ${x.a}`).join("\n") || "(none)"}`,
   );
   const parts = [
     { text: context },

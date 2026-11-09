@@ -25,6 +25,7 @@ import EventLog from "./EventLog";
 
 const PAUSE_MS = 3500;
 const MIN_GAP_MS = 20000;
+const IDLE_MS = 12000; // no work, no speech, nothing pending: ask what happened
 const EXPERT = "you"; // the expert is the person using Capture
 
 // Actions worth a "why" question. Plain amount typing is not: the screen already answers it.
@@ -125,7 +126,7 @@ function Interviewer({ stage, setStage }: Props) {
         .map((h) => `- ${h.description}`)
         .join("\n");
       sendToAgent(
-        `[PAUSE] The expert paused right after: ${e.description}.${earlier ? `\nEarlier expenses they saved:\n${earlier}` : ""}\nIf they handled this one differently from a similar earlier one, ask what the difference is. Otherwise ask one short question about why, a limit, or when they would stop and ask.`,
+        `[PAUSE] The expert paused right after: ${e.description}.${earlier ? `\nEarlier items they saved:\n${earlier}` : ""}\nIf they handled this one differently from a similar earlier one, ask what the difference is. Otherwise ask one short question about why, a limit, or when they would stop and ask. If you are not sure what they did, say so and ask.`,
         { respond: true },
       );
       const field = fieldFor(e);
@@ -161,6 +162,22 @@ function Interviewer({ stage, setStage }: Props) {
       }
     });
 
+    lastActivity.current = Date.now(); // the clock starts when the session does
+    // A long silent stop with nothing pending is often a judgment call: ask what happened.
+    const idle = setInterval(() => {
+      const a = agentRef.current;
+      const now = Date.now();
+      if (offRef.current || pending.current || reading.current || a.isSpeaking) return;
+      const quietSince = Math.max(lastActivity.current, a.lastUserSpeech.current, lastQuestion.current);
+      if (!quietSince || now - quietSince < IDLE_MS) return;
+      const last = getHistory().filter((h) => h.source === "dom").pop();
+      sendToAgent(
+        `[IDLE] The expert has stopped working and gone quiet for ${Math.round((now - quietSince) / 1000)} seconds${last ? `, right after: ${last.description}` : ""}. Ask one short question about what happened or why they stopped.`,
+        { respond: true },
+      );
+      lastQuestion.current = now;
+    }, 2000);
+
     function onKey() {
       lastActivity.current = Date.now();
       agentRef.current.sendUserActivity();
@@ -169,6 +186,7 @@ function Interviewer({ stage, setStage }: Props) {
     const offActivity = onActivity(onKey); // typing / pointer / scroll inside Ledgerline
     return () => {
       unsubscribe();
+      clearInterval(idle);
       offActivity();
       window.removeEventListener("keydown", onKey);
       clearTimeout(timer.current);

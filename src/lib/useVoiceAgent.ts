@@ -14,9 +14,12 @@ export function useVoiceAgent(role: "interviewer" | "tutor") {
 
   const conv = useConversation({
     onMessage: ({ message, role: from }) => {
-      if (message.startsWith("[")) return; // our own tagged control messages
+      if (from === "user" && message.startsWith("[")) return; // our own tagged control messages
+      // The agent sometimes echoes a tag or adds a style tag ("[slow]"): show only the words.
+      const text = from === "user" ? message : message.replace(/\[[A-Za-z ]{1,20}\]\s*/g, "").trim();
+      if (!text) return;
       if (from === "user") lastUserSpeech.current = Date.now();
-      setTranscript((t) => [...t, { time: elapsed(), speaker: from === "user" ? "expert" : "agent", text: message }]);
+      setTranscript((t) => [...t, { time: elapsed(), speaker: from === "user" ? "expert" : "agent", text }]);
     },
     onError: (message) => setError(String(message)),
   });

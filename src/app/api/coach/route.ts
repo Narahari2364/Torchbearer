@@ -1,7 +1,7 @@
 // POST /api/coach — Teaching: compare what the new hire just did on screen with the expert's
-// approved steps. Returns a gentle verdict: "match" (good, go on), "different" (might differ
-// from the expert → goes under review for the supervisor), or "none" (nothing to say yet).
-// It never tells the new hire they are wrong.
+// approved steps. Returns a verdict: "match" (good, go on), "different" (not how the expert
+// does it: say plainly what isn't right and why; also goes under review for the supervisor),
+// or "none" (nothing to say yet).
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { geminiJson } from "@/lib/gemini";
@@ -14,6 +14,7 @@ You know how the expert does this task: their approved STEPS, with their reasons
 Ignore the browser's own bars and any small floating "Torchbearer" window.
 
 Compare what the new hire did between the PREVIOUS and CURRENT screenshot with the expert's steps.
+The new hire is on a DIFFERENT case than the expert. The expert's specific values (project numbers, people's names, restaurants, amounts, dates) are examples, not rules: never tell the new hire to use them. Judge only against the kind of action, the expert's reasons and their stated rules (e.g. which documents a case like this needs, a limit that triggers an approval).
 Return JSON only:
 {
   "action": string | null,          // one sentence: what the new hire just did (name attached documents and key values). null if nothing meaningful changed.
@@ -24,13 +25,13 @@ Return JSON only:
 }
 
 verdict:
-- "match": the action fits how the expert does that step (and respects their rules). message: short, warm confirmation and what comes next, e.g. "That's right, that's how it's done here. Next, check the amount per person."
-- "different": the action seems to differ from the expert's way or one of their rules (e.g. a missing or extra attachment, a different choice, skipping a step, saving before something the expert always adds). message: gentle, never blaming. Start with "This might be a bit different from the usual way", give the expert's reason in a few words, and say you've put it under review for the supervisor. Example: "This might be a bit different from the usual way. The supervisor's approval gets attached when it's over 30 a person. I've put it under review for your supervisor."
-- "none": nothing meaningful happened or the action is still in progress. message null.
+- "match": the action fits how the expert does that step (and respects their rules). message: short, warm confirmation and, if useful, what comes next in general terms (never a specific value from the expert's case), e.g. "That's right, that's how it's done here. Next, check the amount per person."
+- "different": the action breaks one of the expert's rules or differs from their way (e.g. a missing or extra attachment, a different choice, skipping a step, saving before something the expert always adds). message: say clearly and kindly what is not right, then the expert's reason in a few words, then what to do instead. Be direct, not blaming, e.g. "That one isn't quite right: your expert always attaches the approval when it's over the limit. Add it before you save." Only call it "different" when you are sure from the screen; if you can't tell, use "none".
+- "none": nothing meaningful happened, the action is still in progress, or you can't tell. message null.
 
 Documents: track which documents the new hire selected or attached from the screens where their names are visible (e.g. a receipt gallery or an attachments list) and from WHAT THE NEW HIRE DID SO FAR. Never assume a document (like an approval) is attached unless you saw its name. If something is saved and a document the expert's rules require was never seen, that is "different".
 Vary your wording: the RECENT MESSAGES below were already said; never start the same way or reuse the same praise. Sound like a friendly colleague, not a script.
-Never use the words "wrong", "mistake", "error", "incorrect" or "failed". Don't repeat a verdict for a step already listed as DONE or UNDER REVIEW unless the new hire did something new there.
+Never mock or blame the new hire. Don't repeat a verdict for a step already listed as DONE or UNDER REVIEW unless the new hire did something new there.
 Never include personal data (emails, phone, card or bank numbers).`;
 
 const toPart = (dataUrl: string) => ({ inlineData: { mimeType: "image/jpeg", data: dataUrl.replace(/^data:image\/\w+;base64,/, "") } });
@@ -62,7 +63,6 @@ export async function POST(req: Request) {
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: 502 });
   const out = redactDeep(r.data);
   const verdict = out.verdict === "match" || out.verdict === "different" ? out.verdict : "none";
-  // Belt and braces: the new hire is never told they were wrong.
-  const message = out.message?.replace(/\b(wrong|mistake|error|incorrect|failed)\b/gi, "different") ?? null;
+  const message = out.message ?? null;
   return NextResponse.json({ action: out.action ?? null, stepId: out.stepId ?? null, verdict, message: verdict === "none" ? null : message, nextHint: out.nextHint ?? null });
 }

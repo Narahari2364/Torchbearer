@@ -1,6 +1,6 @@
 "use client";
 // The screenshot-only Torchbearer loop:
-//   watch    every 2 s a frame; changed frames go to /api/observe with the workflow so far
+//   watch    every second a frame; changed frames go to /api/observe with the workflow so far
 //   write    the LLM returns what happened + the updated workflow (+ maybe a question)
 //   ask      a question is spoken only at a pause: screen still ≥ 3 s, nobody talking,
 //            ≥ 15 s since the last question
@@ -13,10 +13,11 @@ import { elapsed, resetSession } from "@/lib/events";
 import { saveWorkflow } from "@/lib/session";
 import { requestMic, useVoiceAgent } from "@/lib/useVoiceAgent";
 import type { ObservedStep, ObserveQA, TranscriptLine } from "@/lib/types";
-import { ScreenWatcher, shareErrorText, type Frame } from "./screenWatcher";
+import { ScreenWatcher, friendly, shareErrorText, type Frame } from "./screenWatcher";
 
 const PAUSE_MS = 3000;
 const MIN_GAP_MS = 15000;
+const IDLE_MS = 12000; // screen still, nobody talking, nothing to ask: ask what happened
 
 export type ObserverStatus = "idle" | "connecting" | "watching" | "reading" | "asking" | "off_record" | "debrief" | "building";
 
@@ -59,10 +60,12 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
   });
   const lastSent = useRef<string | null>(null);
   const inFlight = useRef(false);
+  const missed = useRef(false); // the screen changed while a call was running
   const integrated = useRef(0); // how many Q&A pairs the LLM has already seen
   const asked = useRef<string[]>([]);
   const pending = useRef<string | null>(null);
   const lastQuestionAt = useRef(0);
+  const idleAsked = useRef(0); // when we last checked in on a silent stop
   const shots = useRef<Record<string, string>>({});
   const offRanges = useRef<{ from: string; to: string }[]>([]);
   const actionsRef = useRef<{ time: string; text: string }[]>([]);
@@ -92,8 +95,14 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
 
   async function onFrame(f: Frame) {
     const l = live.current;
-    if (l.offRecord || l.phase === "building" || inFlight.current) return;
-    if (!f.changed) return;
+    if (l.offRecord || l.phase === "building") return;
+    // A change that lands while a call is running must not be lost: send it with the next frame.
+    if (inFlight.current) {
+      if (f.changed) missed.current = true;
+      return;
+    }
+    if (!f.changed && !missed.current) return;
+    missed.current = false;
     inFlight.current = true;
     setReading(true);
     const now = elapsed();
@@ -119,7 +128,8 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
       }
       if (data.question && l.phase === "task") pending.current = data.question;
     } catch (e) {
-      setError(e instanceof Error ? e.message.slice(0, 160) : "Couldn't read the screen.");
+      missed.current = true; // try this screen again with the next frame
+      setError(friendly(e));
     } finally {
       inFlight.current = false;
       setReading(false);
@@ -142,6 +152,27 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
       pending.current = null;
       lastQuestionAt.current = now;
     }, 1000);
+    return () => clearInterval(t);
+  }, [agent.connected, phase]);
+
+  // A long silent stop is often a judgment call: ask what happened or why they stopped.
+  useEffect(() => {
+    if (!agent.connected || phase !== "task") return;
+    lastQuestionAt.current = Math.max(lastQuestionAt.current, Date.now());
+    const t = setInterval(() => {
+      const l = live.current;
+      const now = Date.now();
+      if (pending.current || l.offRecord || l.agent.isSpeaking) return;
+      if (idleAsked.current > Math.max(watcher.current.lastChange, l.agent.lastUserSpeech.current)) return; // already asked during this stop
+      const quietSince = Math.max(watcher.current.lastChange, l.agent.lastUserSpeech.current, lastQuestionAt.current);
+      if (now - quietSince < IDLE_MS || now - lastQuestionAt.current < MIN_GAP_MS) return;
+      const last = actionsRef.current[actionsRef.current.length - 1];
+      l.agent.sendUserMessage(
+        `[IDLE] The expert has stopped and gone quiet for ${Math.round((now - quietSince) / 1000)} seconds${last ? `, right after: ${last.text}` : ""}. Ask one short question about what happened or why they stopped.`,
+      );
+      lastQuestionAt.current = now;
+      idleAsked.current = now;
+    }, 2000);
     return () => clearInterval(t);
   }, [agent.connected, phase]);
 

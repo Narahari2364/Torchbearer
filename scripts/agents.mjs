@@ -23,7 +23,7 @@ const agents = [
     envKey: "ELEVENLABS_INTERVIEWER_AGENT_ID",
     name: "Torchbearer - Interviewer",
     prompt: interviewerPrompt,
-    firstMessage: "Hi, I'm Torchbearer. Go ahead and show me how you submit your expenses. I'll stay quiet and only ask when you pause.",
+    firstMessage: "Hi, I'm Torchbearer. Go ahead and show me how you do this task. I'll mostly listen, and ask when you pause.",
   },
   {
     envKey: "ELEVENLABS_TUTOR_AGENT_ID",
@@ -49,6 +49,11 @@ for (const a of agents) {
   const body = {
     name: a.name,
     conversation_config: {
+      // Expressive mode makes the LLM sprinkle audio tags like [slow] that slow the voice down mid-sentence.
+      tts: { expressive_mode: false },
+      // People go quiet for a long time while they work; the app decides when to check in ([IDLE]),
+      // so ElevenLabs' own 7 s "Are you still there?" nudge stays out of the way.
+      turn: { turn_timeout: 30 },
       agent: {
         first_message: a.firstMessage,
         language: "en",

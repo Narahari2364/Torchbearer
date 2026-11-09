@@ -1,8 +1,8 @@
 "use client";
-// Teaching loop: watch the new hire's screen (screenshot every 2 s), compare each new action
+// Teaching loop: watch the new hire's screen (screenshot every second), compare each new action
 // with the expert's approved steps (/api/coach), and guide gently by voice at pauses:
-// "that's right, next…" or "this might be a bit different… I've put it under review".
-// Anything that might differ goes to the supervisor's review list, never "you're wrong".
+// "that's right, next…" or "that isn't quite right, your expert does X because Y".
+// Anything that differs also goes to the supervisor's review list.
 // Must be used inside <ConversationProvider>.
 
 import { useEffect, useRef, useState } from "react";
@@ -10,9 +10,10 @@ import { elapsed, resetSession } from "@/lib/events";
 import { loadMastery, loadReviews, saveMastery, saveReviews } from "@/lib/session";
 import { requestMic, useVoiceAgent } from "@/lib/useVoiceAgent";
 import type { ReviewItem, StepMastery, WorkMap } from "@/lib/types";
-import { ScreenWatcher, shareErrorText, type Frame } from "./screenWatcher";
+import { ScreenWatcher, friendly, shareErrorText, type Frame } from "./screenWatcher";
 
 const PAUSE_MS = 2000;
+const IDLE_MS = 15000; // screen still and nobody talking: check in on the new hire
 // No sign-in yet, so every learner shares one progress record. Replace with the signed-in user (Cognito).
 const LEARNER = "New hire";
 
@@ -47,8 +48,11 @@ export function useCoach(map: WorkMap, workflowId: string) {
   });
   const lastSent = useRef<string | null>(null);
   const inFlight = useRef(false);
+  const missed = useRef(false); // the screen changed while a call was running
   const actions = useRef<{ time: string; text: string }[]>([]);
   const toSay = useRef<string | null>(null);
+  const lastNudge = useRef(0);
+  const idleAsked = useRef(0); // when we last checked in on a silent stop // last time the tutor spoke up on its own
   const recent = useRef<string[]>([]);
   const pendingReviews = useRef<ReviewItem[]>([]); // unsubmitted items from earlier sessions
   const masteryRef = useRef<Record<string, StepMastery>>({});
@@ -70,7 +74,13 @@ export function useCoach(map: WorkMap, workflowId: string) {
   }));
 
   async function onFrame(f: Frame) {
-    if (!f.changed || inFlight.current) return;
+    // A change that lands while a call is running must not be lost: send it with the next frame.
+    if (inFlight.current) {
+      if (f.changed) missed.current = true;
+      return;
+    }
+    if (!f.changed && !missed.current) return;
+    missed.current = false;
     inFlight.current = true;
     setReading(true);
     const now = elapsed();
@@ -114,7 +124,8 @@ export function useCoach(map: WorkMap, workflowId: string) {
         recent.current = [...recent.current, data.message].slice(-4);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message.slice(0, 160) : "Couldn't read the screen.");
+      missed.current = true; // try this screen again with the next frame
+      setError(friendly(e));
     } finally {
       inFlight.current = false;
       setReading(false);
@@ -132,7 +143,26 @@ export function useCoach(map: WorkMap, workflowId: string) {
       if (Date.now() - a.lastUserSpeech.current < 2000) return;
       a.sendUserMessage(`[GUIDE] ${text}`);
       toSay.current = null;
+      lastNudge.current = Date.now();
     }, 800);
+    return () => clearInterval(t);
+  }, [agent.connected]);
+
+  // Stopped for a while: ask what happened or where they are stuck.
+  useEffect(() => {
+    if (!agent.connected) return;
+    lastNudge.current = Date.now();
+    const t = setInterval(() => {
+      const a = live.current.agent;
+      const now = Date.now();
+      if (toSay.current || a.isSpeaking) return;
+      if (idleAsked.current > Math.max(watcher.current.lastChange, a.lastUserSpeech.current)) return; // already asked during this stop
+      const quietSince = Math.max(watcher.current.lastChange, a.lastUserSpeech.current, lastNudge.current);
+      if (now - quietSince < IDLE_MS) return;
+      a.sendUserMessage(`[IDLE] The new hire has stopped and gone quiet for ${Math.round((now - quietSince) / 1000)} seconds. Ask briefly what happened or what they are unsure about. Don't give the answer.`);
+      lastNudge.current = now;
+      idleAsked.current = now;
+    }, 2000);
     return () => clearInterval(t);
   }, [agent.connected]);
 
@@ -181,7 +211,7 @@ export function useCoach(map: WorkMap, workflowId: string) {
     setSessions((n) => n + 1);
     if (agent.connected) {
       agent.sendUserMessage(
-        `[DONE] The new hire finished. Learned: ${Object.values(masteryRef.current).filter((m) => m === "learned").length} step(s); to relearn: ${Object.values(masteryRef.current).filter((m) => m === "relearn").length}; ${live.current.reviews.length} item(s) went to the supervisor for review. Close warmly in two sentences, without saying anything was wrong.`,
+        `[DONE] The new hire finished. Learned: ${Object.values(masteryRef.current).filter((m) => m === "learned").length} step(s); to relearn: ${Object.values(masteryRef.current).filter((m) => m === "relearn").length}; ${live.current.reviews.length} item(s) went to the supervisor for review. Close warmly in two sentences: what they have down, and what they still need to get right.`,
       );
       setTimeout(() => live.current.agent.endSession(), 12000);
     }

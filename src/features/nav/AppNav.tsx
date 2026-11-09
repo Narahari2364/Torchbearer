@@ -14,7 +14,7 @@ interface Me {
 
 const TABS = [
   { href: "/capture", label: "Teaching", hint: "An expert teaches", match: ["/capture"] },
-  { href: "/vault", label: "Workflows", hint: "View and approve", match: ["/vault", "/map", "/review"] },
+  { href: "/vault", label: "Workflows", hint: "View and approve", match: ["/vault", "/map", "/process", "/review"] },
   { href: "/teach", label: "Training", hint: "A new hire trains", match: ["/teach"] },
 ];
 

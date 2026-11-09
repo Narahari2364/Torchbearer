@@ -157,6 +157,11 @@ export default function MappingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 pt-1">
+              {!isExample && (
+                <Link href={`/process?id=${wf.id}`} className="inline-flex h-11 items-center rounded-sm border border-indigo bg-white px-4 text-[15px] text-indigo hover:bg-indigo-soft">
+                  Process map
+                </Link>
+              )}
               <button className="inline-flex h-11 items-center rounded-sm border border-indigo bg-white px-4 text-[15px] text-indigo hover:bg-indigo-soft" onClick={() => setExporting(true)}>
                 Export for AI agents ↓
               </button>

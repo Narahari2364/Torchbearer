@@ -12,15 +12,21 @@ export async function geminiJson<T>(
   // Total time for all model attempts. Hosting platforms cut requests off (AWS Amplify at ~30 s),
   // so give up in time to return a clean error; the client simply tries again with the next frame.
   budgetMs = Number(process.env.GEMINI_BUDGET_MS) || 25_000,
+  // Share of the time left that one model may use before the next is tried. Raise it for slow,
+  // heavy requests (many images) that a lighter fallback can't answer in the few seconds left anyway.
+  share = 0.6,
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { ok: false, error: "GEMINI_API_KEY missing in .env.local" };
 
   const deadline = Date.now() + budgetMs;
   let last = "";
-  for (const model of models) {
+  for (const [i, model] of models.entries()) {
     const left = deadline - Date.now();
     if (left < 1_000) return { ok: false, error: last || `Gemini took longer than ${budgetMs / 1000}s` };
+    // A model that hangs must not use up the whole budget: leave the next models time to answer.
+    const isLast = i === models.length - 1;
+    const wait = isLast ? left : Math.min(left, Math.max(8_000, Math.round(left * share)));
     let res: Response;
     try {
       res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
@@ -31,10 +37,11 @@ export async function geminiJson<T>(
           contents: [{ role: "user", parts }],
           generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
         }),
-        signal: AbortSignal.timeout(left),
+        signal: AbortSignal.timeout(wait),
       });
     } catch {
-      return { ok: false, error: `Gemini ${model} took longer than ${budgetMs / 1000}s` };
+      last = `Gemini ${model} took longer than ${Math.round(wait / 1000)}s`;
+      continue;
     }
     if (!res.ok) {
       last = `Gemini ${model} ${res.status}: ${await res.text()}`;
@@ -49,5 +56,5 @@ export async function geminiJson<T>(
       return { ok: false, error: `Gemini ${model} returned invalid JSON: ${text.slice(0, 200)}` };
     }
   }
-  return { ok: false, error: last };
+  return { ok: false, error: last || `Gemini took longer than ${budgetMs / 1000}s` };
 }

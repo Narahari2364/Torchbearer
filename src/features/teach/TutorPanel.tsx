@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ConversationProvider } from "@elevenlabs/react";
-import { resetSession, subscribe } from "@/lib/events";
+import { onActivity, resetSession, subscribe } from "@/lib/events";
 import { sendCommand } from "@/lib/ledgerline";
 import { loadTeachingMap } from "@/lib/session";
 import { useApprenticeAgent } from "@/features/mock/useApprenticeAgent";
@@ -37,6 +37,8 @@ export default function TutorPanel(props: Props) {
   );
 }
 
+const IDLE_MS = 15000;
+
 function Tutor({ stage, setStage, violations, progress, onReset }: Props) {
   const agent = useApprenticeAgent("tutor");
   const [held, setHeld] = useState(false); // a save is held and the hint/replay card is showing
@@ -54,6 +56,36 @@ function Tutor({ stage, setStage, violations, progress, onReset }: Props) {
   useEffect(() => {
     chat.current?.scrollTo({ top: chat.current.scrollHeight });
   }, [agent.transcript.length, held]);
+
+  // The new hire stopped and went quiet: check in on what happened (at most every IDLE_MS).
+  const lastActive = useRef(0);
+  const finishedRef = useRef(false);
+  useEffect(() => {
+    finishedRef.current = finished || held;
+  });
+  useEffect(() => {
+    if (!agent.connected) return;
+    lastActive.current = Date.now();
+    const bump = () => (lastActive.current = Date.now());
+    const offActivity = onActivity(bump);
+    window.addEventListener("keydown", bump);
+    const offEvents = subscribe(bump);
+    const idle = setInterval(() => {
+      const a = agentRef.current;
+      const now = Date.now();
+      if (finishedRef.current || a.isSpeaking) return;
+      const quietSince = Math.max(lastActive.current, a.lastUserSpeech.current);
+      if (now - quietSince < IDLE_MS) return;
+      a.sendUserMessage(`[IDLE] The new hire has stopped and gone quiet for ${Math.round((now - quietSince) / 1000)} seconds. Gently ask what happened or what they are unsure about. Don't give the answer.`);
+      lastActive.current = now;
+    }, 2000);
+    return () => {
+      clearInterval(idle);
+      offActivity();
+      offEvents();
+      window.removeEventListener("keydown", bump);
+    };
+  }, [agent.connected]);
 
   useEffect(() => {
     if (!agent.connected) return;

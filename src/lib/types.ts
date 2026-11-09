@@ -72,6 +72,17 @@ export interface WorkMapStep {
   reason: string;
   expertQuote: string;
   guardrails: string[];
+  process?: StepProcess; // filled in by the process map (/process)
+}
+
+/** Process map: how one step fits the whole process (tools, data in and out, links to other steps). */
+export interface StepProcess {
+  tool: string; // the app, system or site used, e.g. "Ledgerline · expense form"
+  inputs: { name: string; source: string }[]; // data or documents the step needs, and where each comes from
+  outputs: string[]; // what the step produces or changes
+  feedsInto: string[]; // ids of later steps that use this step's outputs
+  decision: string; // the judgment call made here and why; "" for routine steps
+  unknown: string[]; // what couldn't be told from the recording: ask the expert
 }
 
 /** One step of the workflow the vision LLM writes live from screenshots (+ the user's spoken answers). */
@@ -140,6 +151,7 @@ export interface WorkMap {
   confirmed: boolean; // expert confirmed the teach-back
   offRecord?: { from: string; to: string }[]; // "mm:ss" ranges the expert took off the record (shown as gaps)
   published?: boolean; // expert approved the map; Teaching mode uses only published maps
+  processBuiltAt?: string; // ISO time the process map was last built
 }
 
 export type RuleKey = "approval" | "delivery_docs";

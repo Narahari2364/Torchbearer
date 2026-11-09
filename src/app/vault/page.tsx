@@ -161,6 +161,9 @@ export default function VaultPage() {
                       Review and approve
                     </Link>
                   )}
+                  <Link prefetch={false} href={`/process?id=${encodeURIComponent(w.id)}`} className="inline-flex h-9 items-center rounded-sm border border-line px-3 text-[14px] text-[#344054] hover:bg-panel">
+                    Process map
+                  </Link>
                   <button
                     onClick={() => { setConfirming(w.id); setDeleteError(null); }}
                     className="ml-auto inline-flex h-9 items-center rounded-sm px-2 text-[14px] text-[#667085] hover:bg-err-soft hover:text-err"

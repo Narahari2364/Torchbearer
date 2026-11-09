@@ -1,7 +1,7 @@
 "use client";
 // Module 1 · Capture: one click launches Torchbearer bot into an always-on-top floating
 // window (Chrome/Edge Picture-in-Picture). In the bot: Start recording → choose Entire screen →
-// it reads the screen every 2 s in any browser tab, writes the workflow live and asks by voice
+// it reads the screen every second in any browser tab, writes the workflow live and asks by voice
 // when the screenshots can't explain something. Stop recording → everything goes to Mapping.
 
 import { useRouter } from "next/navigation";

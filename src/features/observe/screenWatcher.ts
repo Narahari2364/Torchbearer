@@ -3,7 +3,7 @@
 // every FRAME_MS we grab a frame and report whether it changed (cheap 32x18 thumbnail diff),
 // so only changed screens go to the LLM and "no change for a while" can mean "paused".
 
-const FRAME_MS = 2000;
+const FRAME_MS = 1000; // one screenshot per second
 
 export interface Frame {
   dataUrl: string;
@@ -101,4 +101,11 @@ export function shareErrorText(e: unknown): string {
     return "Chrome only starts screen recording from the main Torchbearer page. Press ● Start recording there.";
   if (name === "NotAllowedError") return "Screen sharing was cancelled or blocked. Press ● Start recording again and choose Entire screen.";
   return msg || "Screen sharing didn't start. Press ● Start recording again.";
+}
+
+/** A failed screen read, in words for the user. The next frame retries, so busy/slow only needs a calm note. */
+export function friendly(e: unknown): string {
+  const m = e instanceof Error ? e.message : "";
+  if (/took longer|high demand|overloaded|\b(429|500|503)\b/i.test(m)) return "The AI is slow right now. Still watching, trying again.";
+  return "Couldn't read the screen. Trying again.";
 }
