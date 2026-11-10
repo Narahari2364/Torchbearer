@@ -41,6 +41,26 @@ function pairAnswers(transcript: TranscriptLine[]): ObserveQA[] {
   return pairs;
 }
 
+/** Steps keyed by id, with "mm:ss" times compared as text (they are zero-padded). */
+const byTime = (a: ObservedStep, b: ObservedStep) => a.time.localeCompare(b.time);
+
+/**
+ * Combine a workflow the server just returned with the one on screen now. The screen-reading call
+ * and the answer-writing call can overlap, and each was sent an older copy, so neither result may
+ * simply replace the other: a why or rule already written is never wiped by an empty one, and a
+ * step that one call didn't know about yet is kept.
+ */
+function mergeWorkflow(current: ObservedStep[], incoming: ObservedStep[]): ObservedStep[] {
+  const now = new Map(current.map((s) => [s.id, s]));
+  const merged = incoming.map((s) => {
+    const was = now.get(s.id);
+    return was ? { ...s, why: s.why || was.why, rule: s.rule || was.rule } : s;
+  });
+  const seen = new Set(merged.map((s) => s.id));
+  const kept = current.filter((s) => !seen.has(s.id));
+  return kept.length ? [...merged, ...kept].sort(byTime) : merged;
+}
+
 export function useObserver(onWorkMapReady: (workflowId: string) => void) {
   const agent = useVoiceAgent("interviewer");
   const watcher = useRef(new ScreenWatcher());
@@ -87,7 +107,7 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
       .then((data) => {
         if (!data.workflow) return;
         integrated.current = count;
-        setWorkflow(data.workflow);
+        setWorkflow((cur) => mergeWorkflow(cur, data.workflow));
       })
       .catch(() => {});
     return () => ctrl.abort();
@@ -95,7 +115,7 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
 
   async function onFrame(f: Frame) {
     const l = live.current;
-    if (l.offRecord || l.phase === "building") return;
+    if (l.offRecord || l.phase !== "task") return; // recording stopped: no more screens to the AI
     // A change that lands while a call is running must not be lost: send it with the next frame.
     if (inFlight.current) {
       if (f.changed) missed.current = true;
@@ -118,7 +138,9 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
       for (const step of data.workflow as ObservedStep[]) {
         if (!stepShots.current[step.id]) stepShots.current[step.id] = watcher.current.grab(640) ?? "";
       }
-      setWorkflow(data.workflow);
+      // Recording may have stopped while this call ran: don't let a late screen change the workflow.
+      if (live.current.phase !== "task") return;
+      setWorkflow((cur) => mergeWorkflow(cur, data.workflow));
       setError(null);
       if (data.action) {
         actionsRef.current = [...actionsRef.current, { time: now, text: data.action }];
@@ -212,7 +234,7 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
   function toggleOffRecord() {
     const next = !offRecord;
     setOffRecord(next);
-    watcher.current.paused = next;
+    watcher.current.paused = next || phase !== "task"; // back on the record during the debrief still sends no screens
     agent.setMuted(next);
     if (next) offRanges.current.push({ from: elapsed(), to: "" });
     else if (offRanges.current.length) offRanges.current[offRanges.current.length - 1].to = elapsed();
@@ -221,6 +243,8 @@ export function useObserver(onWorkMapReady: (workflowId: string) => void) {
 
   function endTask() {
     setPhase("debrief");
+    live.current.phase = "debrief"; // takes effect for a frame already on its way, before the next render
+    watcher.current.paused = true; // stop sending screens to the AI; the share stays open until Send to Mapping
     pending.current = null;
     if (!agent.connected) return; // no voice (e.g. out of credits): go straight to building the map
     agent.sendUserMessage(
